@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<xs:schema id="OTI" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:dc="https://github.com/benoitjardin/ZeroGC">
+
+    <xs:simpleType name="Type">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="1" />
+            <xs:enumeration value="O">
+                <xs:annotation>
+                    <xs:appinfo>ENTER_ORDER</xs:appinfo>
+                    <xs:appinfo dc:direction="Outbound">EnterOrder</xs:appinfo>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Side">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="1" />
+            <xs:enumeration value="B">
+                <xs:annotation>
+                    <xs:appinfo>BUY</xs:appinfo>
+                </xs:annotation>
+            </xs:enumeration>
+            <xs:enumeration value="S">
+                <xs:annotation>
+                    <xs:appinfo>SELL</xs:appinfo>
+                </xs:annotation>
+            </xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="BankInternalReference">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="16" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="EnterOrder">
+        <xs:complexType>
+            <xs:attribute name="type" type="Type" />
+            <xs:attribute name="token" type="xs:int" />
+            <xs:attribute name="bankInternalReference" type="BankInternalReference" />
+            <xs:attribute name="side" type="Side" />
+            <xs:attribute name="quantity" type="xs:int" />
+            <xs:attribute name="instrument" type="xs:int" />
+            <xs:attribute name="price" type="xs:long" />
+            <xs:attribute name="tif" type="xs:int" />
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>

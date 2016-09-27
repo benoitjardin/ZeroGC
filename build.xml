@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+
+<project name="ZeroGC" default="dist">
+	<description>Compiles and runs a simple java application</description>
+
+	<property name="build" value="build" />
+	<property name="dest" value="dest" />
+	<property name="src" value="src" />
+	<property name="tools" value="tools" />
+	<property name="test" value="test" />
+	<property name="dist" value="dist" />
+
+	<!-- Note - Target to initialize the project -->
+	<target name="initialize" description="Initializes the project by creating temporary directories" >
+		<delete dir="${build}" />
+		<delete dir="${dist}" />
+		<mkdir dir="${build}/classes" />
+		<mkdir dir="${dist}" />
+	</target>
+
+	<!-- Note - Target to compile the project source    -->
+	<target name="compile" depends="initialize" description="Compile the project source code" >
+		<javac srcdir="${src}" destdir="${build}/classes" deprecation="true" failonerror="true" debug="true" includeantruntime='false' />
+		<javac srcdir="${test}" destdir="${build}/classes" deprecation="true" failonerror="true" debug="true" includeantruntime='false' >
+			<classpath location="lib/junit.jar" />
+		</javac>
+	</target>
+
+	<target name="generator-compile" depends="initialize" description="Compile the project source code" >
+		<javac srcdir="${tools}" destdir="${build}/classes" deprecation="true" failonerror="true" debug="true" includeantruntime='false' >
+			<include name="**/Generator*.java"/>
+		</javac>
+	</target>
+
+	<target name="generator-collections-run" depends="generator-compile" description="Run the code generator" >
+		<java classpath="${build}/classes" classname="com.zerogc.collections.Generator" fork="true" >
+			<arg value="${tools}/com/zerogc/collections" />
+			<arg value="${src}/com/zerogc/collections" />
+		</java>
+	</target>
+
+	<target name="generator-run" depends="generator-compile" description="Run the code generator" >
+		<!--java classpath="${build}/classes" classname="com.zerogc.collections.Generator" >
+			<arg value="${src}/com/zerogc/collections" />
+		</java-->
+		<java classpath="${build}/classes" classname="com.zerogc.messages.GeneratorStores" >
+			<arg line="-prefix Test -dest ${src} -xsd ${tools}/resources/TestStores.xsd" />
+		</java>
+		<java classpath="${build}/classes" classname="com.zerogc.messages.GeneratorConstants" >
+			<arg line="-prefix Test -dest ${src} -xsd ${tools}/resources/TestMessages.xsd" />
+		</java>
+		<java classpath="${build}/classes" classname="com.zerogc.messages.GeneratorMessages" >
+			<arg line="-prefix Test -dest ${src} -xsd ${tools}/resources/TestMessages.xsd" />
+		</java>
+	</target>
+
+	<target name="dist" depends="archive" />
+
+	<!-- Note - Target to archive the compiled classes  -->
+	<!-- Note - Also provides a manifest file           -->
+	<target name="archive" depends="compile" description="Archives the compiled classes" >
+		<jar destfile="${dist}/ZeroGC-0.0.0.0.jar"
+			basedir="${build}/classes"
+		/>
+	</target>
+<!--
+    <target name="generate">
+    	<antcall target="generate-type">
+            <param name="keyName" value="Int"/>
+            <param name="keyType" value="int"/>
+    	    <param name="valueName" value="Object"/>
+    	    <param name="valueType" value="Object"/>
+    	</antcall>
+    </target>
+    	
+    <target name="generate-type">
+	    <copy todir="${dest}" filtering="true">
+	        <fileset dir="${src}">
+	        	<include name="**/*_KeyName_*.java"/>
+                <include name="**/*_ValueName_*.java"/>
+	        </fileset>
+	    	<filterset begintoken="_" endtoken="_">
+	    		<filter token="KeyName" value="${keyName}"/>
+	    		<filter token="KeyType" value="${keyType}"/>
+	    		<filter token="ValueName" value="${valueName}"/>
+	    		<filter token="ValueType" value="${valueType}"/>
+	    		<filter token="Warning"
+	            value="MACHINE GENERATED FILE - DO NOT EDIT!"/>
+	        </filterset>
+	    </copy>
+	</target>
+-->
+</project>

@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xs:schema id="Caches" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:dc="https://github.com/benoitjardin/ZeroGC">
+
+    <xs:element name="Order">
+    	<xs:complexType>
+    		<xs:attribute name="insertDateTime" type="xs:long" />
+	        <xs:attribute name="orderNumber" type="xs:long" />
+	        <xs:attribute name="side" type="xs:byte" />
+	        <xs:attribute name="instrument" type="xs:int" />
+	        <xs:attribute name="quantity" type="xs:int" />
+	        <xs:attribute name="Price" type="xs:long" />
+    	</xs:complexType>
+    </xs:element>
+
+</xs:schema>
