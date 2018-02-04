@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zerogc.util;
+package com.zerogc.core;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -28,69 +28,74 @@ import java.nio.channels.SocketChannel;
 import com.zerogc.collections.IntRbTree;
 import com.zerogc.collections.LongHeap;
 import com.zerogc.collections.LongObjectHeap;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 /**
- * GC free event loop based on the System V UNIX poll system call on Unix
- * and select on Windows.
+ * GC free event loop based on the Linux epoll system call.
+ * It is not compatible with Windows (use PollEventLoop instead).
  * @author Benoit Jardin
  */
-public class PollEventLoop implements EventLoop {
-    private Logger log = new Logger(PollEventLoop.class.getSimpleName());
+public class EPollEventLoop implements EventLoop {
+    final Logger log = LogManager.getLogger(EPollEventLoop.class.getSimpleName());
 
     private static final int CLOCK_GRANULARITY = 10;
 
-	private final ByteBuffer fdsByteBuffer;
-	private boolean open = false;
-	
+    private final int epfd;
+    private final ByteBuffer eventsByteBuffer;
+    private boolean open = false;
+
     private LongObjectHeap timers = new LongObjectHeap();
     private long currentMicros;
     private long currentMillis;
 
     private SelectionKeys selectionKeys = new SelectionKeys(SelectionKeys.class.getSimpleName(), Native.MAX_SELECTABLE_FDS);
     EventLoopListener selectEventHandler = null;
-    
-    private class PollSelectionKey implements EventLoopSelectionKey {
-        public static final int OFFSET_ADDED = -1;
-        public static final int OFFSET_REMOVED = -2;
-        
-    	SelectableChannel selectableChannel;
+
+    private class EPollSelectionKey implements EventLoopSelectionKey {
+        SelectableChannel selectableChannel;
         int fd;
         int interestOps;
         short eventType;
         EventLoopListener eventHandler;
-        int offset;
-        
+
         @Override
         public int interestOps() {
-        	return this.interestOps;
+            return this.interestOps;
+        }
+        private void interestOpsInt(int ops) {
+            this.interestOps = ops;
+            this.eventType = 0;
+            if ((ops & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0) {
+                this.eventType |= Native.EPOLLIN;
+            }
+            if ((ops & (SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT)) != 0) {
+                this.eventType |= Native.EPOLLOUT;
+            }
+        }
+        @Override
+        public void interestOps(int ops) {
+            interestOpsInt(ops);
+            Native.epoll_ctl(epfd, Native.EPOLL_CTL_MOD, fd, this.eventType);
         }
 
         @Override
-        public void interestOps(int ops) {
-        	this.interestOps = ops;
-        	this.eventType = 0;
-        	if ((ops & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0) {
-        		this.eventType |= Native.POLLIN;
-        	}
-        	if ((ops & (SelectionKey.OP_WRITE | SelectionKey.OP_CONNECT)) != 0) {
-        		// Windows reports async connection errors in select exceptfds
-        		//this.eventType |= (Native.POLLOUT | Native.POLLPRI);
-        		this.eventType |= Native.POLLOUT;
-        	}
-        }
-        
-        @Override
         public void cancel() {
             // Mark the selection key for later removal
-            this.offset = PollSelectionKey.OFFSET_REMOVED;
             this.interestOps = 0;
+            this.eventType = 0;
+            this.eventHandler = null;
+            if (Native.epoll_ctl(epfd, Native.EPOLL_CTL_DEL, fd, this.eventType) != 0) {
+                 log.log(Level.ERROR, log.getSB().append("epoll_ctl failed"));
+            }
         }
-        
+
     };
 
     // Map between file descriptor to selection key
     class SelectionKeys extends IntRbTree {
-    	private PollSelectionKey[] value;
+        private EPollSelectionKey[] value;
 
         public SelectionKeys() {
             super(SelectionKeys.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
@@ -99,7 +104,7 @@ public class PollEventLoop implements EventLoop {
         public SelectionKeys(String name) {
             super(name, INITIAL_CAPACITY, GROWTH_FACTOR);
         }
-        
+
         public SelectionKeys(String name, int initialCapacity) {
             super(name, initialCapacity, GROWTH_FACTOR);
         }
@@ -107,34 +112,34 @@ public class PollEventLoop implements EventLoop {
         public SelectionKeys(String name, int initialCapacity, float growthFactor) {
             super(name, initialCapacity, growthFactor);
         }
-        
+
         @Override
         protected void grow(int capacity, int newCapacity) {
             super.grow(capacity, newCapacity);
 
-            PollSelectionKey[] newValue = new PollSelectionKey[newCapacity];
+            EPollSelectionKey[] newValue = new EPollSelectionKey[newCapacity];
             if (capacity > 0) {
                 System.arraycopy(this.value, 0, newValue, 0, capacity);
             }
             for (int i=capacity; i<newCapacity; i++) {
-            	newValue[i] = new PollSelectionKey();
+                newValue[i] = new EPollSelectionKey();
             }
             this.value = newValue;
         }
-        
-        public PollSelectionKey getValue(int entry) {
+
+        public EPollSelectionKey getValue(int entry) {
             return this.value[entry];
         }
-      
+
         public int put(int key) {
-        	int entry = insert(key);
-        	return entry;        	
+            int entry = insert(key);
+            return entry;
         }
     }
- 
+
     // Multimap between timer expiry and EventHandler
     static class TimerEvents extends LongHeap {
-    	private EventLoopListener[] value;
+        private EventLoopListener[] value;
 
         @Override
         protected void grow(int capacity, int newCapacity) {
@@ -146,46 +151,50 @@ public class PollEventLoop implements EventLoop {
             }
             this.value = newValue;
         }
-        
+
         public EventLoopListener getValue(int entry) {
             return this.value[entry];
         }
-        
+
         public int put(long key, EventLoopListener eventHandler) {
-        	int entry = super.insert(key);
-        	this.value[entry] = eventHandler; 
-        	return entry;
+            int entry = super.insert(key);
+            this.value[entry] = eventHandler;
+            return entry;
         }
     }
-    
-    public PollEventLoop() {
+
+    public EPollEventLoop() {
         currentMicros = Native.currentTimeMicros();
         currentMillis = currentMicros/1000;
-    	fdsByteBuffer = ByteBuffer.allocateDirect(Native.MAX_SELECTABLE_FDS * Native.POLL_SIZE);
-    	fdsByteBuffer.order(ByteOrder.nativeOrder());
+        eventsByteBuffer = ByteBuffer.allocateDirect(Native.MAX_SELECTABLE_FDS * Native.EPOLLEVENT_SIZE);
+        eventsByteBuffer.order(ByteOrder.nativeOrder());
+        epfd = Native.epoll_create(256);
+        if (epfd < 0) {
+            log.log(Level.ERROR, log.getSB().append("epoll_create failed"));
+        }
     }
+
     // --------------------- Basic event loop ---------------------
 
     @Override
     public long currentMicros() {
         return this.currentMicros;
     }
-    
+
     @Override
     public long currentMillis() {
         return this.currentMillis;
     }
-    
+
     @Override
     public void open() {
-    	open = true;
     }
-    
+
     @Override
     public void close() {
-    	open = false;
+        open = false;
     }
-    
+
     @Override
     public EventLoopSelectionKey register(ServerSocketChannel serverSocketChannel, int ops, EventLoopListener eventHandler) {
         int fd = Native.getFdVal_ServerSocketChannel(serverSocketChannel);
@@ -204,30 +213,32 @@ public class PollEventLoop implements EventLoop {
         return registerImpl(datagramChannel, fd, ops, eventHandler);
     }
 
-	@Override
-	public EventLoopSelectionKey register(SourceChannel sourceChannel, int ops, EventLoopListener eventhandler) {
+    @Override
+    public EventLoopSelectionKey register(SourceChannel sourceChannel, int ops, EventLoopListener eventhandler) {
         int fd = Native.getFdVal_SourceChannel(sourceChannel);
-		return registerImpl(sourceChannel, fd, ops, eventhandler);
-	}
+        return registerImpl(sourceChannel, fd, ops, eventhandler);
+    }
 
-	@Override
-	public EventLoopSelectionKey register(SinkChannel sinkChannel, int ops, EventLoopListener eventhandler) {
+    @Override
+    public EventLoopSelectionKey register(SinkChannel sinkChannel, int ops, EventLoopListener eventhandler) {
         int fd = Native.getFdVal_SinkChannel(sinkChannel);
-		return registerImpl(sinkChannel, fd, ops, eventhandler);
-	}
+        return registerImpl(sinkChannel, fd, ops, eventhandler);
+    }
 
     private EventLoopSelectionKey registerImpl(SelectableChannel selectableChannel, int fd, int ops, EventLoopListener eventHandler) {
-    	int entry = this.selectionKeys.put(fd);
-    	
-    	log.log(Level.DEBUG, log.getSB().append("Register fd: ").append(fd).append(" at entry: ").append(entry).append(" for ops: ").append(ops));
+        int entry = this.selectionKeys.put(fd);
 
-    	PollSelectionKey selectionKey = this.selectionKeys.getValue(entry);
-    	selectionKey.fd = fd;
-    	selectionKey.selectableChannel = selectableChannel;
-    	selectionKey.eventHandler = eventHandler;
-    	selectionKey.interestOps(ops);
-    	selectionKey.offset = PollSelectionKey.OFFSET_ADDED;
-    	return selectionKey;
+        log.log(Level.DEBUG, log.getSB().append("Register fd: ").append(fd).append(" at entry: ").append(entry).append(" for ops: ").append(ops));
+
+        EPollSelectionKey selectionKey = this.selectionKeys.getValue(entry);
+        selectionKey.fd = fd;
+        selectionKey.selectableChannel = selectableChannel;
+        selectionKey.eventHandler = eventHandler;
+        selectionKey.interestOpsInt(ops);
+        if (Native.epoll_ctl(epfd, Native.EPOLL_CTL_ADD, fd, selectionKey.eventType) != 0) {
+            log.log(Level.ERROR, log.getSB().append("epoll_ctl failed"));
+        }
+        return selectionKey;
     }
 
     @Override
@@ -239,17 +250,15 @@ public class PollEventLoop implements EventLoop {
     }
 
     @Override
-    public int addTimer(long whenMillis, TimerListener timerHandler) {
-    	log.log(Level.DEBUG, "addTimer");
-    	return this.timers.insert(whenMillis, timerHandler);
+    public int addTimer(long when, TimerListener timerHandler) {
+        log.log(Level.DEBUG, "addTimer");
+        return this.timers.insert(when, timerHandler);
     }
-    
-    
 
     @Override
     public void cancelTimer(int entry) {
-    	log.log(Level.DEBUG, "cancelTimer");
-    	this.timers.removeEntry(entry);
+        log.log(Level.DEBUG, "cancelTimer");
+        this.timers.removeEntry(entry);
     }
 
     @Override
@@ -257,14 +266,14 @@ public class PollEventLoop implements EventLoop {
         log.log(Level.INFO, "Starting EventLoop");
 
         while (open) {
-	        try {
+            try {
                 long nextTimer = Long.MIN_VALUE;
                 while (!this.timers.isEmpty()) {
                     int entry = this.timers.firstEntry();
                     nextTimer = this.timers.getKey(entry);
                     if (nextTimer - currentMillis < CLOCK_GRANULARITY) {
                         // Callbacks may change the timer map, remove timer entry beforehand
-                    	TimerListener timerHandler = (TimerListener)this.timers.getValue(entry);
+                        TimerListener timerHandler = (TimerListener)this.timers.getValue(entry);
                         this.timers.removeEntry(entry);
                         timerHandler.onTimer(entry, currentMillis);
                         nextTimer = Long.MIN_VALUE;
@@ -272,23 +281,17 @@ public class PollEventLoop implements EventLoop {
                         break;
                     }
                 }
-                
-                this.fdsByteBuffer.clear();
+
                 for (int entry = this.selectionKeys.firstEntry(), i = 0; entry != -1; i++) {
-                	PollSelectionKey selectionKey = this.selectionKeys.getValue(entry);
-                	if (selectionKey.offset != PollSelectionKey.OFFSET_REMOVED) {
-                		log.log(Level.DEBUG, log.getSB().append("Poll register fd: ").append(selectionKey.fd).append(" at entry: ").append(entry).append(" for event: ").append(selectionKey.eventType));
-                    	this.fdsByteBuffer.putInt(selectionKey.fd);
-                    	this.fdsByteBuffer.putShort(selectionKey.eventType);
-                        selectionKey.offset = this.fdsByteBuffer.position();
-                    	this.fdsByteBuffer.putShort((short)0);
-                    	entry = selectionKeys.nextEntry(entry);
-                    } else {
+                    EPollSelectionKey selectionKey = this.selectionKeys.getValue(entry);
+                    if (selectionKey.eventHandler == null) {
                         log.log(Level.DEBUG, log.getSB().append("Remove selectionKey for fd: ").append(selectionKey.fd).append(" at entry: ").append(entry));
                         entry = selectionKeys.removeEntry(entry);
+                    } else {
+                        entry = selectionKeys.nextEntry(entry);
                     }
                 }
-                
+
                 // Callbacks may have been running for some non neglectable time, update current time before calculating timeout
                 currentMicros = Native.currentTimeMicros();
                 currentMillis = currentMicros/1000;
@@ -299,60 +302,63 @@ public class PollEventLoop implements EventLoop {
                     timeout = 0;
                 }
                 int intTimeout = timeout > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int)timeout;
-                //intTimeout = 0;
-                
+
                 if (selectEventHandler != null) {
                     selectEventHandler.onSelect();
                 }
                 if (!open) {
-                	break;
+                    break;
                 }
-                
-                log.log(Level.DEBUG, log.getSB().append("Poll ").append(this.selectionKeys.size()).append(" files with timeout: ").append(timeout));
-                int nfds = Native.poll(((sun.nio.ch.DirectBuffer)fdsByteBuffer).address(), this.selectionKeys.size(), intTimeout);
-                log.log(Level.DEBUG, log.getSB().append("Poll returned with nfds: ").append(nfds));
-                
+
+                log.log(Level.DEBUG, log.getSB().append("EPoll ").append(this.selectionKeys.size()).append(" files with timeout: ").append(timeout));
+                this.eventsByteBuffer.clear();
+                int nfds = Native.epoll_wait(epfd, ((sun.nio.ch.DirectBuffer)eventsByteBuffer).address(), this.selectionKeys.size(), intTimeout);
+                log.log(Level.DEBUG, log.getSB().append("EPoll returned with nfds: ").append(nfds));
+
                 currentMicros = Native.currentTimeMicros();
                 currentMillis = currentMicros/1000;
                 if (nfds == 0) {
-                	// A timer expired
-                	continue;
+                    // A timer expired
+                    continue;
                 } else if (nfds == -1) {
-                    log.log(Level.ERROR, log.getSB().append("EventLoop poll failed, errno: ").append(Native.errno()));
+                    log.log(Level.ERROR, log.getSB().append("EventLoop epoll_wait failed, errno: ").append(Native.errno()));
                     break;
                 }
-                for (int i=0, entry = this.selectionKeys.firstEntry(); entry != -1; i++, entry = this.selectionKeys.nextEntry(entry)) {
-                	PollSelectionKey selectionKey = this.selectionKeys.getValue(entry);
-                	if (selectionKey.offset < 0) {
-                	    continue;
-                	}
-            		short revent = fdsByteBuffer.getShort(selectionKey.offset);
-                    log.log(Level.DEBUG, log.getSB().append("revent: ").append(revent).append(" available for fd: ").append(selectionKey.fd).append(" at entry: ").append(entry).append(" interestOps: ").append(selectionKey.interestOps));
-            		if ((revent & Native.POLLIN) != 0) {
-                		log.log(Level.DEBUG, log.getSB().append("POLLIN available for fd: ").append(selectionKey.fd).append(" at entry: ").append(entry).append(" interestOps: ").append(selectionKey.interestOps));
-            			if ((selectionKey.interestOps & SelectionKey.OP_READ) != 0) {
-            			    selectionKey.eventHandler.onRead(selectionKey.selectableChannel);
-            			} else if ((selectionKey.interestOps & SelectionKey.OP_ACCEPT) != 0) {
-            			    selectionKey.eventHandler.onAccept(selectionKey.selectableChannel);
-            			}
-            		}
-            		if ((revent & Native.POLLOUT) != 0) {
-                		log.log(Level.DEBUG, log.getSB().append("POLLOUT available for fd: ").append(selectionKey.fd).append(" at entry: ").append(entry).append(" interestOps: ").append(selectionKey.interestOps));
-            			if ((selectionKey.interestOps & SelectionKey.OP_WRITE) != 0) {
-            			    selectionKey.eventHandler.onWrite(selectionKey.selectableChannel);
-            			} else if ((selectionKey.interestOps & SelectionKey.OP_CONNECT) != 0) {
-            			    selectionKey.eventHandler.onConnect(selectionKey.selectableChannel);
-            			}
-            		}
-            		// Socket is in an error state
-                    if ((revent & ~(Native.POLLIN | Native.POLLOUT)) != 0 ) {
-                    	log.log(Level.ERROR, "Socket is in an error state");
-                    	selectionKey.eventHandler.onClose(selectionKey.selectableChannel);
+                for (int i=0; i < nfds; i++) {
+                    int offset = i*Native.EPOLLEVENT_SIZE;
+                    int fd = eventsByteBuffer.getInt(offset + Native.EPOLLEVENT_FD_OFFSET);
+                    int events = eventsByteBuffer.getInt(offset + Native.EPOLLEVENT_EVENTS_OFFSET);
+                    int entry = this.selectionKeys.find(fd);
+                    EPollSelectionKey selectionKey = this.selectionKeys.getValue(entry);
+                    log.log(Level.DEBUG, log.getSB().append("events: ").append(events).append(" available for fd: ").append(fd).append(" at entry: ").append(entry).append(" interestOps: ").append(selectionKey.interestOps));
+                    if (selectionKey.eventHandler == null) {
+                        continue;
+                    }
+                    if ((events & Native.EPOLLIN) != 0) {
+                        log.log(Level.DEBUG, log.getSB().append("POLLIN available for fd: ").append(fd).append(" at entry: ").append(entry).append(" interestOps: ").append(selectionKey.interestOps));
+                        if ((selectionKey.interestOps & SelectionKey.OP_READ) != 0) {
+                            selectionKey.eventHandler.onRead(selectionKey.selectableChannel);
+                        } else if ((selectionKey.interestOps & SelectionKey.OP_ACCEPT) != 0) {
+                            selectionKey.eventHandler.onAccept(selectionKey.selectableChannel);
+                        }
+                    }
+                    if ((events & Native.EPOLLOUT) != 0) {
+                        log.log(Level.DEBUG, log.getSB().append("POLLOUT available for fd: ").append(fd).append(" at entry: ").append(entry).append(" interestOps: ").append(selectionKey.interestOps));
+                        if ((selectionKey.interestOps & SelectionKey.OP_WRITE) != 0) {
+                            selectionKey.eventHandler.onWrite(selectionKey.selectableChannel);
+                        } else if ((selectionKey.interestOps & SelectionKey.OP_CONNECT) != 0) {
+                            selectionKey.eventHandler.onConnect(selectionKey.selectableChannel);
+                        }
+                    }
+                    // Socket is in an error state
+                    if ((events & ~(Native.EPOLLIN | Native.EPOLLOUT)) != 0 ) {
+                        log.log(Level.ERROR, "Socket is in an error state");
+                        selectionKey.eventHandler.onClose(selectionKey.selectableChannel);
                     }
                 }
-	        } catch (Throwable e) {
-	            log.log(Level.INFO, "EventLoop caught: ", e);
-	        }
+            } catch (Throwable e) {
+                log.log(Level.INFO, "EventLoop caught: ", e);
+            }
         }
         log.log(Level.INFO, "Exiting EventLoop");
     }

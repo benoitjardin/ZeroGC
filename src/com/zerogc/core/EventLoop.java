@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zerogc.util;
+package com.zerogc.core;
 
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.Pipe.SinkChannel;
@@ -38,16 +38,16 @@ public interface EventLoop {
         public void onWrite(SelectableChannel selectableChannel);
         public void onSelect();
     }
-    
+
     public interface EventLoopSelectionKey {
         public int interestOps();
         public void interestOps(int ops);
         public void cancel();
     }
-    
+
     public void open();
     public void close();
-    
+
     public long currentMicros();
     public long currentMillis();
 
@@ -60,9 +60,9 @@ public interface EventLoop {
     /** @return the new timer id */
     public int addTimer(long when, TimerListener timerHandler);
     public void cancelTimer(int entry);
-    
+
     public EventLoopListener registerSelect(EventLoopListener eventhandler);
-    
+
     public void run();
-    
+
 }

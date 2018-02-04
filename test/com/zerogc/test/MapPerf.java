@@ -6,8 +6,9 @@ import java.util.TreeMap;
 import com.zerogc.collections.LongAvlTree;
 import com.zerogc.collections.LongLongTreeMap;
 import com.zerogc.collections.LongRbTree;
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 /**
  * @author Benoit Jardin
@@ -15,15 +16,15 @@ import com.zerogc.util.Logger;
 
 // java -Djava.library.path=${DEVELOP}/zerogc/native -cp ${DEVELOP}/zerogc/dist/ZeroGC-0.0.0.0.jar com.zerogc.test.MapPerf
 public class MapPerf {
-    static final Logger log = new Logger(MapPerf.class.getSimpleName());
+    static final Logger log = LogManager.getLogger(MapPerf.class.getSimpleName());
     static final int SIZE = 10000;
     
     private static int count = 0;
-	private static long sum = 0;
+    private static long sum = 0;
 
     // Multimap between timer expiry and EventHandler
     static class LongLongRbMap extends LongRbTree {
-    	private long[] value;
+        private long[] value;
 
         @Override
         protected void grow(int capacity, int newCapacity) {
@@ -45,9 +46,9 @@ public class MapPerf {
         }
         
         public final int insert(long key, long value) {
-        	int entry = super.insert(key);
-        	this.value[entry] = value; 
-        	return entry;
+            int entry = super.insert(key);
+            this.value[entry] = value; 
+            return entry;
         }
         
         public final void remove(long key) {
@@ -89,12 +90,12 @@ public class MapPerf {
     }
 
     public static void main(String[] args) {
-    	
+        
         new Thread(new Runnable() {
-        	@Override
+            @Override
             public void run() {
-            	long start = System.currentTimeMillis();
-            	int prevCount = count;
+                long start = System.currentTimeMillis();
+                int prevCount = count;
                 while (true) {
                     try {
                         Thread.sleep(1000);
@@ -102,8 +103,8 @@ public class MapPerf {
                         int iterations = count - prevCount;
                         prevCount = count;
                         log.log(Level.INFO, log.getSB().append("Iterations: ").append(iterations).append(" in ").append(end-start).append("ms, ")
-                        		.append(iterations*1000.0/(end-start)).append(" iterartions/sec")
-                        		.append(", sum: ").append(sum));
+                                .append(iterations*1000.0/(end-start)).append(" iterartions/sec")
+                                .append(", sum: ").append(sum));
                         start = end;
                     } catch (InterruptedException e) {
                     }
@@ -146,7 +147,7 @@ public class MapPerf {
                 sum += longLongTreeMap.find(values[i]);
                 //log.log(Level.INFO, log.getSB().append(values[i]).append(" = ").append(longLongRbMap.get(values[i])));
                 //longRbTree.remove(entry);
-            	//longRbTree.remove(values[i]);
+                //longRbTree.remove(values[i]);
                 //sum += longTreeMap.get(values[i]);
                 //longLongRbMap.insert(values[i], values[i]);
                 //longTreeMap.put(values[i], values[i]);

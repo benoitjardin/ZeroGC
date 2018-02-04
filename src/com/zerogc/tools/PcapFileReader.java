@@ -6,10 +6,12 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
-import com.zerogc.util.ByteSlice;
-import com.zerogc.util.ByteUtils;
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.core.ByteSlice;
+import com.zerogc.core.ByteUtils;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.Logger;
+import com.zerogc.net.MessageListener;
+import com.zerogc.net.MessageSource;
 
 
 public class PcapFileReader implements MessageSource {
@@ -28,28 +30,35 @@ public class PcapFileReader implements MessageSource {
     private long captureTime;
     private int srcPort;
     private int dstPort;
-    
-	public ByteSlice getName(ByteSlice slice) {
-		return slice.set(name, 0, name.length);
-	}
-	public long getCaptureTime() {
-		return this.captureTime;
-	}
-	public byte[] getSrcAddrBytes() {
-		return srcAddrBytes;
-	}
-	public int getSrcPort() {
-		return srcPort;
-	}
-	public byte[] getDstAddrBytes() {
-		return dstAddrBytes;
-	}
-	public int getDstPort() {
-		return dstPort;
-	}
-	public ByteBuffer getBufferIn() {
-		return inBuffer;
-	}
+
+    @Override
+    public ByteSlice getName(ByteSlice slice) {
+        return slice.set(name, 0, name.length);
+    }
+    @Override
+    public long getCaptureTime() {
+        return this.captureTime;
+    }
+    @Override
+    public byte[] getSrcAddrBytes() {
+        return srcAddrBytes;
+    }
+    @Override
+    public int getSrcPort() {
+        return srcPort;
+    }
+    @Override
+    public byte[] getDstAddrBytes() {
+        return dstAddrBytes;
+    }
+    @Override
+    public int getDstPort() {
+        return dstPort;
+    }
+    @Override
+    public ByteBuffer getBufferIn() {
+        return inBuffer;
+    }
 
     public PcapFileReader(Logger log, String name, MessageListener networkMessageListener) throws IOException {
         this.log = log;
@@ -58,7 +67,7 @@ public class PcapFileReader implements MessageSource {
 
         FileInputStream fileInputStream = new FileInputStream(name);
         this.fileChannel = fileInputStream.getChannel();
-        
+
         // Initial load of the inBuffer
         int len = this.fileChannel.read(this.inBuffer);
         this.inBuffer.flip();
@@ -66,12 +75,13 @@ public class PcapFileReader implements MessageSource {
         this.inBuffer.position(24);
     }
 
-    // Dispatch 1 message and resplendish inBuffer when exhausted 
+    // Dispatch 1 message and resplendish inBuffer when exhausted
+    @Override
     public void dispatch() {
         boolean exhausted = true;
         while (exhausted) {
             if (this.inBuffer.remaining() >= HEADER_LEN) {
-            	int mark = this.inBuffer.position();
+                int mark = this.inBuffer.position();
                 int tv_sec = this.inBuffer.getInt();
                 int tv_usec = this.inBuffer.getInt();
                 this.captureTime = tv_sec*1000L + tv_usec/1000;
@@ -80,24 +90,24 @@ public class PcapFileReader implements MessageSource {
                 if (this.inBuffer.remaining() < len) {
                     this.inBuffer.position(mark);
                 } else {
-                	int limit = this.inBuffer.limit();
-                	this.inBuffer.limit(this.inBuffer.position()+len);
-                	// Ethernet Header + IP Header until Source IP (30 bytes)
-                	this.inBuffer.position(this.inBuffer.position()+30);
-                	
-                	this.inBuffer.get(this.srcAddrBytes);
-                	this.inBuffer.get(this.dstAddrBytes);
-                	this.srcPort = ByteUtils.getShortBE(this.inBuffer, this.inBuffer.position()) & 0xFFFF;
-                	this.inBuffer.position(this.inBuffer.position()+2);
-                	this.dstPort = ByteUtils.getShortBE(this.inBuffer, this.inBuffer.position()) & 0xFFFF;
-                	this.inBuffer.position(this.inBuffer.position()+2);
-                	int udpLen = ByteUtils.getShortBE(this.inBuffer, this.inBuffer.position()) & 0xFFFF;
-                	this.inBuffer.position(this.inBuffer.position()+4);
-                	
+                    int limit = this.inBuffer.limit();
+                    this.inBuffer.limit(this.inBuffer.position()+len);
+                    // Ethernet Header + IP Header until Source IP (30 bytes)
+                    this.inBuffer.position(this.inBuffer.position()+30);
+
+                    this.inBuffer.get(this.srcAddrBytes);
+                    this.inBuffer.get(this.dstAddrBytes);
+                    this.srcPort = ByteUtils.getShortBE(this.inBuffer, this.inBuffer.position()) & 0xFFFF;
+                    this.inBuffer.position(this.inBuffer.position()+2);
+                    this.dstPort = ByteUtils.getShortBE(this.inBuffer, this.inBuffer.position()) & 0xFFFF;
+                    this.inBuffer.position(this.inBuffer.position()+2);
+                    int udpLen = ByteUtils.getShortBE(this.inBuffer, this.inBuffer.position()) & 0xFFFF;
+                    this.inBuffer.position(this.inBuffer.position()+4);
+
                     this.networkMessageListener.onMessage(this, this.inBuffer);
 
                     this.inBuffer.position(this.inBuffer.limit());
-                	this.inBuffer.limit(limit);
+                    this.inBuffer.limit(limit);
                     exhausted = false;
                 }
             }
@@ -107,7 +117,7 @@ public class PcapFileReader implements MessageSource {
                     int len = this.fileChannel.read(this.inBuffer);
                     this.inBuffer.flip();
                     if (len == -1) {
-                        this.networkMessageListener.onMessage(this, null);                    
+                        this.networkMessageListener.onMessage(this, null);
                         break;
                     }
                 } catch (IOException e) {

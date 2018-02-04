@@ -15,7 +15,6 @@
  */
 package com.zerogc.collections;
 
-
 /**
  * @author Benoit Jardin
  * Textbook implementation of RedBlack Tree.
@@ -25,54 +24,54 @@ package com.zerogc.collections;
  */
 
 public class ObjectObjectTreeMap extends ObjectTreeSet {
-	
-	public static class Store extends ObjectTreeSet.Store {
-    	private Object[] value;
+
+    public static class Store extends ObjectTreeSet.Store {
+        private Object[] value;
 
         public Store() {
-        	this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+            this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
         }
-        
+
         public Store(String name) {
             this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity) {
-        	this(name, initialCapacity, GROWTH_FACTOR);
+            this(name, initialCapacity, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity, float growthFactor) {
-        	super(name, initialCapacity, growthFactor);
+            super(name, initialCapacity, growthFactor);
         }
-        
+
         @Override
-    	protected void grow(int capacity, int newCapacity) {
-    		super.grow(capacity, newCapacity);
-    		
-    		Object[] newValue = new Object[newCapacity];
+        protected void grow(int capacity, int newCapacity) {
+            super.grow(capacity, newCapacity);
+
+            Object[] newValue = new Object[newCapacity];
             if (capacity > 0) {
                 System.arraycopy(this.value, 0, newValue, 0, capacity);
             }
             this.value = newValue;
-    	}
-	}
-	
-    public ObjectObjectTreeMap() {
-    	this(ObjectObjectTreeMap.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
+        }
     }
-    
+
+    public ObjectObjectTreeMap() {
+        this(ObjectObjectTreeMap.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
+    }
+
     public ObjectObjectTreeMap(String name) {
         this(name, Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
     }
 
     public ObjectObjectTreeMap(String name, int initialCapacity) {
-    	this(name, initialCapacity, Store.GROWTH_FACTOR);
+        this(name, initialCapacity, Store.GROWTH_FACTOR);
     }
 
     public ObjectObjectTreeMap(String name, int initialCapacity, float growthFactor) {
-    	super(name, new Store(name, initialCapacity, growthFactor));
+        super(name, new Store(name, initialCapacity, growthFactor));
     }
-    
+
     public final Object getValue(int entry) {
         return ((Store)this.store).value[entry];
     }
@@ -80,13 +79,13 @@ public class ObjectObjectTreeMap extends ObjectTreeSet {
     public final Object get(Object key) {
         return ((Store)this.store).value[find(key)];
     }
-    
+
     public final int insert(Object key, Object value) {
-    	int entry = super.insert(key);
-    	((Store)this.store).value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        ((Store)this.store).value[entry] = value; 
+        return entry;
     }
-    
+
     public final void remove(Object key) {
         removeEntry(find(key));
     }

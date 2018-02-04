@@ -26,24 +26,24 @@ import org.xml.sax.SAXException;
  * @author Benoit Jardin
  */
 public class GeneratorConstants extends GeneratorBase {
-	
-    static final String PACKAGE = "com.zerogc.constants";
+
+    static final String PACKAGE = "com.zerogc.generated.constants";
 
     protected StringBuilder enumFormat = new StringBuilder();
 
     GeneratorConstants(String pkg) {
         super(pkg);
     }
-    
+
     protected GeneratorConstants(GeneratorConstants generator) {
         super(generator);
     }
-    
+
     @Override
     protected GeneratorBase cloneGenerator() {
         return new GeneratorConstants(this);
     }
-    
+
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException
     {
@@ -52,8 +52,8 @@ public class GeneratorConstants extends GeneratorBase {
             enumFormat.setLength(0);
         }
     }
-    
-    
+
+
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException
     {
@@ -66,7 +66,7 @@ public class GeneratorConstants extends GeneratorBase {
                     PrintStream enumPrintStream = new PrintStream(generatedDir +"/" + pascal(prefix) + pascal(simpleTypeName) + ".java");
                     enumPrintStream.println(comment);
                     enumPrintStream.println();
-               		enumPrintStream.println("package " + getPackage() + ";");
+                    enumPrintStream.println("package " + getPackage() + ";");
                     enumPrintStream.println();
                     enumPrintStream.println("public class " + pascal(prefix)+pascal(simpleTypeName) + " {");
                     enumPrintStream.print(enumFormat);
@@ -80,9 +80,9 @@ public class GeneratorConstants extends GeneratorBase {
                 enumAppInfoDirection == null) {
             String value = enumValue;
             if (type.isString()) {
-                value = '"' + value + '"'; 
+                value = '"' + value + '"';
             } else if (type.isChar()) {
-                value = "'" + value + "'"; 
+                value = "'" + value + "'";
             }
             enumFormat.append("    public static final " + type.javaName + " " + characters.trim() + " = " + value + ";\n");
         }
@@ -90,7 +90,7 @@ public class GeneratorConstants extends GeneratorBase {
     }
 
     public static void main(String[] args) {
-    	GeneratorConstants generator = new GeneratorConstants(PACKAGE);
+        GeneratorConstants generator = new GeneratorConstants(PACKAGE);
         generator.parseArgs(args);
         generator.run();
     }

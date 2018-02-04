@@ -15,37 +15,36 @@
  */
 package com.zerogc.collections;
 
-
 public class DoubleObjectHeap extends DoubleHeap {
-	private Object[] value;
+    private Object[] value;
 
     @Override
-	protected void grow(int capacity, int newCapacity) {
-		super.grow(capacity, newCapacity);
-		
-		Object[] newValue = new Object[newCapacity];
+    protected void grow(int capacity, int newCapacity) {
+        super.grow(capacity, newCapacity);
+
+        Object[] newValue = new Object[newCapacity];
         if (capacity > 0) {
             System.arraycopy(this.value, 0, newValue, 0, capacity);
         }
         this.value = newValue;
-	}
-	
-    public DoubleObjectHeap() {
-    	this(DoubleObjectHeap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
     }
-    
+
+    public DoubleObjectHeap() {
+        this(DoubleObjectHeap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+    }
+
     public DoubleObjectHeap(String name) {
         this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
     }
 
     public DoubleObjectHeap(String name, int initialCapacity) {
-    	this(name, initialCapacity, GROWTH_FACTOR);
+        this(name, initialCapacity, GROWTH_FACTOR);
     }
 
     public DoubleObjectHeap(String name, int initialCapacity, float growthFactor) {
-    	super(name, initialCapacity, growthFactor);
+        super(name, initialCapacity, growthFactor);
     }
-    
+
     public final Object getValue(int entry) {
         return this.value[entry];
     }
@@ -56,11 +55,11 @@ public class DoubleObjectHeap extends DoubleHeap {
     }
 */
     public final int insert(double key, Object value) {
-    	int entry = super.insert(key);
-    	this.value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        this.value[entry] = value;
+        return entry;
     }
-/*    
+/*
     public final void remove(double key) {
         removeEntry(find(key));
     }

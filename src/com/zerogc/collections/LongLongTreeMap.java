@@ -15,7 +15,6 @@
  */
 package com.zerogc.collections;
 
-
 /**
  * @author Benoit Jardin
  * Textbook implementation of RedBlack Tree.
@@ -25,54 +24,54 @@ package com.zerogc.collections;
  */
 
 public class LongLongTreeMap extends LongTreeSet {
-	
-	public static class Store extends LongTreeSet.Store {
-    	private long[] value;
+
+    public static class Store extends LongTreeSet.Store {
+        private long[] value;
 
         public Store() {
-        	this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+            this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
         }
-        
+
         public Store(String name) {
             this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity) {
-        	this(name, initialCapacity, GROWTH_FACTOR);
+            this(name, initialCapacity, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity, float growthFactor) {
-        	super(name, initialCapacity, growthFactor);
+            super(name, initialCapacity, growthFactor);
         }
-        
+
         @Override
-    	protected void grow(int capacity, int newCapacity) {
-    		super.grow(capacity, newCapacity);
-    		
-    		long[] newValue = new long[newCapacity];
+        protected void grow(int capacity, int newCapacity) {
+            super.grow(capacity, newCapacity);
+
+            long[] newValue = new long[newCapacity];
             if (capacity > 0) {
                 System.arraycopy(this.value, 0, newValue, 0, capacity);
             }
             this.value = newValue;
-    	}
-	}
-	
-    public LongLongTreeMap() {
-    	this(LongLongTreeMap.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
+        }
     }
-    
+
+    public LongLongTreeMap() {
+        this(LongLongTreeMap.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
+    }
+
     public LongLongTreeMap(String name) {
         this(name, Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
     }
 
     public LongLongTreeMap(String name, int initialCapacity) {
-    	this(name, initialCapacity, Store.GROWTH_FACTOR);
+        this(name, initialCapacity, Store.GROWTH_FACTOR);
     }
 
     public LongLongTreeMap(String name, int initialCapacity, float growthFactor) {
-    	super(name, new Store(name, initialCapacity, growthFactor));
+        super(name, new Store(name, initialCapacity, growthFactor));
     }
-    
+
     public final long getValue(int entry) {
         return ((Store)this.store).value[entry];
     }
@@ -80,13 +79,13 @@ public class LongLongTreeMap extends LongTreeSet {
     public final long get(long key) {
         return ((Store)this.store).value[find(key)];
     }
-    
+
     public final int insert(long key, long value) {
-    	int entry = super.insert(key);
-    	((Store)this.store).value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        ((Store)this.store).value[entry] = value; 
+        return entry;
     }
-    
+
     public final void remove(long key) {
         removeEntry(find(key));
     }

@@ -1,4 +1,4 @@
-package com.zerogc.tools;
+package com.zerogc.net;
 
 import java.nio.ByteBuffer;
 

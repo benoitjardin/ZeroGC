@@ -15,10 +15,6 @@
  */
 package com.zerogc.collections;
 
-//#if "_KeyType_" == "ByteSlice"
-import com.zerogc.util.ByteSlice;
-//#endif
-
 /**
  * @author Benoit Jardin
  * Textbook implementation of RedBlack Tree.
@@ -28,54 +24,54 @@ import com.zerogc.util.ByteSlice;
  */
 
 public class _KeyName__ValueName_TreeMap extends _KeyName_TreeSet {
-	
-	public static class Store extends _KeyName_TreeSet.Store {
-    	private _ValueType_[] value;
+
+    public static class Store extends _KeyName_TreeSet.Store {
+        private _ValueType_[] value;
 
         public Store() {
-        	this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+            this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
         }
-        
+
         public Store(String name) {
             this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity) {
-        	this(name, initialCapacity, GROWTH_FACTOR);
+            this(name, initialCapacity, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity, float growthFactor) {
-        	super(name, initialCapacity, growthFactor);
+            super(name, initialCapacity, growthFactor);
         }
-        
+
         @Override
-    	protected void grow(int capacity, int newCapacity) {
-    		super.grow(capacity, newCapacity);
-    		
-    		_ValueType_[] newValue = new _ValueType_[newCapacity];
+        protected void grow(int capacity, int newCapacity) {
+            super.grow(capacity, newCapacity);
+
+            _ValueType_[] newValue = new _ValueType_[newCapacity];
             if (capacity > 0) {
                 System.arraycopy(this.value, 0, newValue, 0, capacity);
             }
             this.value = newValue;
-    	}
-	}
-	
-    public _KeyName__ValueName_TreeMap() {
-    	this(_KeyName__ValueName_TreeMap.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
+        }
     }
-    
+
+    public _KeyName__ValueName_TreeMap() {
+        this(_KeyName__ValueName_TreeMap.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
+    }
+
     public _KeyName__ValueName_TreeMap(String name) {
         this(name, Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
     }
 
     public _KeyName__ValueName_TreeMap(String name, int initialCapacity) {
-    	this(name, initialCapacity, Store.GROWTH_FACTOR);
+        this(name, initialCapacity, Store.GROWTH_FACTOR);
     }
 
     public _KeyName__ValueName_TreeMap(String name, int initialCapacity, float growthFactor) {
-    	super(name, new Store(name, initialCapacity, growthFactor));
+        super(name, new Store(name, initialCapacity, growthFactor));
     }
-    
+
     public final _ValueType_ getValue(int entry) {
         return ((Store)this.store).value[entry];
     }
@@ -83,13 +79,13 @@ public class _KeyName__ValueName_TreeMap extends _KeyName_TreeSet {
     public final _ValueType_ get(_KeyType_ key) {
         return ((Store)this.store).value[find(key)];
     }
-    
+
     public final int insert(_KeyType_ key, _ValueType_ value) {
-    	int entry = super.insert(key);
-    	((Store)this.store).value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        ((Store)this.store).value[entry] = value; 
+        return entry;
     }
-    
+
     public final void remove(_KeyType_ key) {
         removeEntry(find(key));
     }

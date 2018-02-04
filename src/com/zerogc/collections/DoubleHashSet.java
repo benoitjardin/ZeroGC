@@ -15,8 +15,10 @@
  */
 package com.zerogc.collections;
 
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.core.ByteSlice;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 public class DoubleHashSet {
     public static final int INITIAL_CAPACITY = 16;
@@ -24,8 +26,8 @@ public class DoubleHashSet {
     public static final float LOAD_FACTOR = 0.75f;
     public static final float GROWTH_FACTOR = 2.0f;
 
-	protected final Logger log;
-	
+    protected final Logger log;
+
     private float growthFactor;
     private float loadFactor;
     private int size = 0;
@@ -36,7 +38,7 @@ public class DoubleHashSet {
     private int[] bucket;
     private double[] key;
     protected Comparator.DoubleComparator comparator = new Comparator.DoubleComparator(); 
-    
+
     public DoubleHashSet() {
         this(DoubleHashSet.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR, LOAD_FACTOR);
     }
@@ -53,8 +55,8 @@ public class DoubleHashSet {
     }
 
     public DoubleHashSet(String name, int initialCapacity, float growthFactor, float loadFactor) {
-    	this.log = new Logger(name);
-    	
+        this.log = LogManager.getLogger(name);
+
         if (initialCapacity < 0)
             throw new IllegalArgumentException("Illegal initial capacity: " +
                                                initialCapacity);
@@ -73,10 +75,10 @@ public class DoubleHashSet {
     }
 
     public void setComparator(Comparator.DoubleComparator comparator) {
-    	if (!this.isEmpty()) {
-    		throw new IllegalStateException("Collection not empty!");
-    	}
-    	this.comparator = comparator;
+        if (!this.isEmpty()) {
+            throw new IllegalStateException("Collection not empty!");
+        }
+        this.comparator = comparator;
     }
 
     public int highMark() {
@@ -86,98 +88,98 @@ public class DoubleHashSet {
     public int capacity() {
         return this.bucket.length;
     }
-    
+
     public int size() {
         return this.size;
     }
-    
+
     public boolean isEmpty() {
         return this.size == 0;
     }
-    
+
     protected void grow(int capacity, int newCapacity) {
         log.log(Level.WARN, log.getSB().append("Resizing to ").append(newCapacity));
 
         int[] oldNext = this.next;
-    	int[] oldBucket = this.bucket;
-    	double[] oldKey = this.key;
-    	int adjustedCapacity = 1;
-    	while (adjustedCapacity < newCapacity) {
-    		adjustedCapacity <<= 1;
-    	}
-    	int threshold = (int)(adjustedCapacity * loadFactor);
-    	this.next = new int[threshold];
-    	this.bucket = new int[(int)(adjustedCapacity)];
-    	this.key = new double[threshold];
-    	
-    	if (capacity > 0) {
+        int[] oldBucket = this.bucket;
+        double[] oldKey = this.key;
+        int adjustedCapacity = 1;
+        while (adjustedCapacity < newCapacity) {
+            adjustedCapacity <<= 1;
+        }
+        int threshold = (int)(adjustedCapacity * loadFactor);
+        this.next = new int[threshold];
+        this.bucket = new int[(int)(adjustedCapacity)];
+        this.key = new double[threshold];
+
+        if (capacity > 0) {
             System.arraycopy(oldKey, 0, this.key, 0, oldKey.length);
         }
 
-		for (int i=0; i < bucket.length; i++) {
-			bucket[i] = -1;
-		}
-        
-    	if (capacity > 0) {
-	        // Transfer entries to the resized hashtable
-	    	for (int i=0; i < oldBucket.length; i++) {
-	    		for (int entry = oldBucket[i]; entry != -1; entry = oldNext[entry]) {
-	    		    int hash;
-	    	        hash = comparator.hashCode(this.key[entry]);
-	    	        int bucket = bucketFor(hash);
-	    	        this.next[entry] = this.bucket[bucket];
-	   	        	this.bucket[bucket] = entry;
-	    		}
-	    	}
-    	}
+        for (int i=0; i < bucket.length; i++) {
+            bucket[i] = -1;
+        }
+
+        if (capacity > 0) {
+            // Transfer entries to the resized hashtable
+            for (int i=0; i < oldBucket.length; i++) {
+                for (int entry = oldBucket[i]; entry != -1; entry = oldNext[entry]) {
+                    int hash;
+                    hash = comparator.hashCode(this.key[entry]);
+                    int bucket = bucketFor(hash);
+                    this.next[entry] = this.bucket[bucket];
+                       this.bucket[bucket] = entry;
+                }
+            }
+        }
     }
-    
+
     public void clear() {
-		for (int i=0; i < bucket.length; i++) {
-			bucket[i] = -1;
-		}
+        for (int i=0; i < bucket.length; i++) {
+            bucket[i] = -1;
+        }
         this.next[this.next.length-1] = -1;
         this.freeEntry = -1;
         this.highMark = 0;
         this.size = 0;
     }
-    
+
     public double getKey(int entry) {
-    	return this.key[entry];
+        return this.key[entry];
     }
-    
+
     private int newEntry() {
         int entry = this.freeEntry;
         if (entry != -1) {
-        	this.freeEntry = this.next[entry];
+            this.freeEntry = this.next[entry];
         } else {
             int capacity = this.next.length;
-        	if (highMark >= capacity) {
-	            // Grow the arrays
-	            int newCapacity = (int) (capacity * this.growthFactor);
-	            grow(capacity, newCapacity);
-        	}
-	        entry = highMark++;
+            if (highMark >= capacity) {
+                // Grow the arrays
+                int newCapacity = (int) (capacity * this.growthFactor);
+                grow(capacity, newCapacity);
+            }
+            entry = highMark++;
         }
-        
+
         this.size++;
         return entry;
     }
-    
+
     private int bucketFor(int h) {
-    	//int bucket = hash & 0x7FFFFFFF % this.bucket.length;
-    	// Modulo operation is quite expensive
-    	// With a bucket size at a power of 2 this is 20% faster
-    	
+        //int bucket = hash & 0x7FFFFFFF % this.bucket.length;
+        // Modulo operation is quite expensive
+        // With a bucket size at a power of 2 this is 20% faster
+
         // This function ensures that hashCodes that differ only by
         // constant multiples at each bit position have a bounded
         // number of collisions (approximately 8 at default load factor).
         h ^= (h >>> 20) ^ (h >>> 12);
         h ^= (h >>> 7) ^ (h >>> 4);
-    	int bucket = h & (this.bucket.length -1);
-    	return bucket;
+        int bucket = h & (this.bucket.length -1);
+        return bucket;
     }
-    
+
     public int find(double key) {
         int hash = comparator.hashCode(key);
         int bucket = bucketFor(hash);
@@ -190,7 +192,7 @@ public class DoubleHashSet {
         }
         return entry;
     }
-    
+
     /**
      * Insert a key in the collection.
      * If the collection already contained the key, the existing entry is returned.
@@ -204,19 +206,19 @@ public class DoubleHashSet {
         for (; entry != -1; entry = next[entry]) {
             if (comparator.equals(key, this.key[entry]))
             {
-            	return entry;
+                return entry;
             }
         }
-        
+
         if (freeEntry == -1) {
-        	entry = newEntry();
-	        bucket = bucketFor(hash);
+            entry = newEntry();
+            bucket = bucketFor(hash);
         } else {
-        	entry = newEntry();
+            entry = newEntry();
         }
         this.key[entry] = key;
-    	next[entry] = this.bucket[bucket];
-      	this.bucket[bucket] = entry;
+        next[entry] = this.bucket[bucket];
+          this.bucket[bucket] = entry;
         return entry;
     }
 
@@ -235,83 +237,82 @@ public class DoubleHashSet {
         for (; entry != -1; prevEntry = entry, entry = next[entry]) {
             if (comparator.equals(key, this.key[entry]))
             {
-	        	if (prevEntry == -1) {
-	        		this.bucket[bucket] = next[entry];
-	        	} else {
-	        		next[prevEntry] = next[entry];
-	        	}
-		        next[entry] = freeEntry;
-		        freeEntry = entry;
-		        size--;
-		        break;
+                if (prevEntry == -1) {
+                    this.bucket[bucket] = next[entry];
+                } else {
+                    next[prevEntry] = next[entry];
+                }
+                next[entry] = freeEntry;
+                freeEntry = entry;
+                size--;
+                break;
             }
         }
         return entry;
     }
-   
+
     public EntryIterator entryIterator(EntryIterator entryIterator) {
         entryIterator.init(this);
         return entryIterator;
     }
-    
+
     public static class EntryIterator {
-    	private DoubleHashSet hashTable;
-    	private int bucket;
-    	private int entry;
-    	private int prevEntry;
-    	
-    	private int nextBucket;
-    	private int nextEntry;
-    	private int nextPrevEntry;
-    	
-    	public EntryIterator() {
-    	}
-    	
-    	public void init(DoubleHashSet hashTable) {
-    		this.hashTable = hashTable;
-    		bucket = -1;
-    		entry = -1;
-    		prevEntry = -1;
-    		
-    		nextBucket = -1;
-    		nextEntry = -1;
-			nextPrevEntry = -1;
-			while (nextEntry == -1 && ++nextBucket < hashTable.bucket.length) {
-				nextEntry = hashTable.bucket[nextBucket];
-			}
-    	}
-    	
-		public boolean hasNext() {
-			return nextEntry != -1;
-		}
+        private DoubleHashSet hashTable;
+        private int bucket;
+        private int entry;
+        private int prevEntry;
 
-		public int nextEntry() {
-			bucket = nextBucket;
-			entry = nextEntry;
-			prevEntry = nextPrevEntry;
-			
-			nextPrevEntry = nextEntry;
-			nextEntry = hashTable.next[nextEntry];
-			while (nextEntry == -1 && ++nextBucket < hashTable.bucket.length) {
-				nextEntry = hashTable.bucket[nextBucket];
-				nextPrevEntry = -1;
-			}
-			return entry;
-	    }
+        private int nextBucket;
+        private int nextEntry;
+        private int nextPrevEntry;
 
-		public void remove() {
-        	if (prevEntry == -1) {
-        		hashTable.bucket[bucket] = hashTable.next[entry];
-        	} else {
-        		hashTable.next[prevEntry] = hashTable.next[entry];
-        	}
-        	hashTable.next[entry] = hashTable.freeEntry;
-        	hashTable.freeEntry = entry;
-        	hashTable.size--;
-	        
-    		bucket = -1;
-    		entry = -1;
-    		prevEntry = -1;
-	    }
+        public EntryIterator() {
+        }
+
+        public void init(DoubleHashSet hashTable) {
+            this.hashTable = hashTable;
+            bucket = -1;
+            entry = -1;
+            prevEntry = -1;
+
+            nextBucket = -1;
+            nextEntry = -1;
+            nextPrevEntry = -1;
+            while (nextEntry == -1 && ++nextBucket < hashTable.bucket.length) {
+                nextEntry = hashTable.bucket[nextBucket];
+            }
+        }
+
+        public boolean hasNext() {
+            return nextEntry != -1;
+        }
+
+        public int nextEntry() {
+            bucket = nextBucket;
+            entry = nextEntry;
+            prevEntry = nextPrevEntry;
+            nextPrevEntry = nextEntry;
+            nextEntry = hashTable.next[nextEntry];
+            while (nextEntry == -1 && ++nextBucket < hashTable.bucket.length) {
+                nextEntry = hashTable.bucket[nextBucket];
+                nextPrevEntry = -1;
+            }
+            return entry;
+        }
+
+        public void remove() {
+            if (prevEntry == -1) {
+                hashTable.bucket[bucket] = hashTable.next[entry];
+            } else {
+                hashTable.next[prevEntry] = hashTable.next[entry];
+            }
+            hashTable.next[entry] = hashTable.freeEntry;
+            hashTable.freeEntry = entry;
+            hashTable.size--;
+
+            bucket = -1;
+            entry = -1;
+            prevEntry = -1;
+        }
     }
 }

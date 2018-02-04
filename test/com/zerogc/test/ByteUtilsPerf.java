@@ -3,10 +3,11 @@ package com.zerogc.test;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 
-import sun.misc.Unsafe;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import sun.misc.Unsafe;
 
 /**
  * @author Benoit Jardin
@@ -34,7 +35,7 @@ public class ByteUtilsPerf {
         
     }
     
-    static final Logger log = new Logger("Jni");
+    static final Logger log = LogManager.getLogger("Jni");
     private static int count = 0;
     private static int sum = 0;
 
@@ -44,10 +45,10 @@ public class ByteUtilsPerf {
 
     public static void main(String[] args) {
         new Thread(new Runnable() {
-        	@Override
+            @Override
             public void run() {
-            	long start = System.currentTimeMillis();
-            	int prevCount = count;
+                long start = System.currentTimeMillis();
+                int prevCount = count;
                 while (true) {
                     try {
                         Thread.sleep(1000);
@@ -55,8 +56,8 @@ public class ByteUtilsPerf {
                         int iterations = count - prevCount;
                         prevCount = count;
                         log.log(Level.INFO, log.getSB().append("Iterations: ").append(iterations).append(" in ").append(end-start).append("ms, ")
-                        		.append(iterations*1000.0/(end-start)).append(" iterartions/sec")
-                        		.append(", sum: ").append(sum));
+                                .append(iterations*1000.0/(end-start)).append(" iterartions/sec")
+                                .append(", sum: ").append(sum));
                         start = end;
                     } catch (InterruptedException e) {
                     }

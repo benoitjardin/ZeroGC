@@ -1,4 +1,6 @@
-package com.zerogc.util;
+package com.zerogc.core;
+
+import com.zerogc.core.ByteUtils;
 
 import junit.framework.TestCase;
 

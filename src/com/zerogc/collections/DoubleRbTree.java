@@ -15,9 +15,10 @@
  */
 package com.zerogc.collections;
 
-import com.zerogc.util.ByteStringBuilder;
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.core.ByteStringBuilder;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 /**
  * @author Benoit Jardin
@@ -26,17 +27,17 @@ import com.zerogc.util.Logger;
  */
 
 public class DoubleRbTree {
-	public static final int INITIAL_CAPACITY = 16;
-	public static final float GROWTH_FACTOR = 2.0f;
+    public static final int INITIAL_CAPACITY = 16;
+    public static final float GROWTH_FACTOR = 2.0f;
 
     protected static final byte RED = 0;
     protected static final byte BLACK = 1;
 
-	protected final Logger log;
-	
+    protected final Logger log;
+
     private float growthFactor = GROWTH_FACTOR;
     private int size = 0;
-    
+
     protected int root = -1;
     private int freeEntry = -1;
     private int highMark = 0;
@@ -47,22 +48,22 @@ public class DoubleRbTree {
     protected byte[] color;
     protected double[] key;
     protected Comparator.DoubleComparator comparator = new Comparator.DoubleComparator(); 
-    
+
     public DoubleRbTree() {
-    	this(DoubleRbTree.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+        this(DoubleRbTree.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
     }
-    
+
     public DoubleRbTree(String name) {
         this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
     }
 
     public DoubleRbTree(String name, int initialCapacity) {
-    	this(name, initialCapacity, GROWTH_FACTOR);
+        this(name, initialCapacity, GROWTH_FACTOR);
     }
 
     public DoubleRbTree(String name, int initialCapacity, float growthFactor) {
-    	this.log = new Logger(name);
-    	 
+        this.log = LogManager.getLogger(name);
+
         if (initialCapacity < 0) {
             throw new IllegalArgumentException("Illegal Capacity: " + initialCapacity);
         }
@@ -73,17 +74,17 @@ public class DoubleRbTree {
             initialCapacity = 1;
         }
         this.growthFactor = growthFactor;
-        
+
         grow(0, initialCapacity);
     }
 
     public void setComparator(Comparator.DoubleComparator comparator) {
-    	if (!this.isEmpty()) {
-    		throw new IllegalStateException("Collection not empty!");
-    	}
-    	this.comparator = comparator;
+        if (!this.isEmpty()) {
+            throw new IllegalStateException("Collection not empty!");
+        }
+        this.comparator = comparator;
     }
-    
+
     public int highMark() {
         return this.highMark;
     }
@@ -95,11 +96,11 @@ public class DoubleRbTree {
     public int size() {
         return this.size;
     }
-    
+
     public boolean isEmpty() {
         return this.size == 0;
     }
-    
+
     protected void grow(int capacity, int newCapacity) {
         log.log(Level.WARN, log.getSB().append("Resizing to ").append(newCapacity));
 
@@ -108,7 +109,7 @@ public class DoubleRbTree {
         int[] newParent = new int[newCapacity];
         byte[] newColor = new byte[newCapacity];
         double[] newKey = new double[newCapacity];
-        
+
         if (capacity > 0) {
             System.arraycopy(left, 0, newLeft, 0, capacity);
             System.arraycopy(right, 0, newRight, 0, capacity);
@@ -116,46 +117,46 @@ public class DoubleRbTree {
             System.arraycopy(color, 0, newColor, 0, capacity);
             System.arraycopy(key, 0, newKey, 0, capacity);
         }
-        
+
         left = newLeft;
         right = newRight;
         parent = newParent;
         color = newColor;
         key = newKey;
     }
-    
+
     public void clear() {
         this.freeEntry = -1;
         this.highMark = 0;
         this.root = -1;
         this.size = 0;
     }
-    
+
     public double getKey(int entry) {
-    	return this.key[entry];
+        return this.key[entry];
     }
-    
+
     private int newEntry() {
         int entry = this.freeEntry;
         if (entry != -1) {
-        	this.freeEntry = this.parent[entry];
+            this.freeEntry = this.parent[entry];
         } else {
             int capacity = this.parent.length;
-        	if (highMark >= capacity) {
-	            // Grow the arrays
-	            int newCapacity = (int)(capacity * this.growthFactor);
-	            grow(capacity, newCapacity);
-        	}
-	        entry = highMark++;
+            if (highMark >= capacity) {
+                // Grow the arrays
+                int newCapacity = (int)(capacity * this.growthFactor);
+                grow(capacity, newCapacity);
+            }
+            entry = highMark++;
         }
-        
+
         left[entry] = -1;
         right[entry] = -1;
 
         this.size++;
         return entry;
     }
-    
+
     /** Returns the first entry in the collection or {@code -1} if it is empty. */
     public int firstEntry() {
         int entry = root;
@@ -166,7 +167,7 @@ public class DoubleRbTree {
         }
         return entry;
     }
-    
+
     /** Returns the last entry in the collection or {@code -1} if it is empty. */
     public int lastEntry() {
         int entry = root;
@@ -177,7 +178,7 @@ public class DoubleRbTree {
         }
         return entry;
     }
-    
+
     /** Returns the previous entry in the collection or {@code -1} when the beginning is reached. */
     public int prevEntry(int entry) {
         if (left[entry] != -1) {
@@ -233,7 +234,7 @@ public class DoubleRbTree {
         }
         return x;
     }
-    
+
     /**
      * Returns the first entry of the key in the collection.
      * @param key the key to find.
@@ -244,8 +245,8 @@ public class DoubleRbTree {
         int entry = -1;
         while (x != -1) {
             //if (!(comparator.compare(this.key[x], key) < 0)) {
-        	if (!comparator.less(this.key[x], key)) {
-            	entry = x; // key[x] >= key
+            if (!comparator.less(this.key[x], key)) {
+                entry = x; // key[x] >= key
                 x = left[x];
             } else {
                 x = right[x];
@@ -254,7 +255,7 @@ public class DoubleRbTree {
         //return (entry == -1) || (comparator.compare(key, this.key[entry]) < 0) ? -1 : entry;
         return (entry == -1) || comparator.less(key, this.key[entry]) ? -1 : entry;
     }
-    
+
     /**
      * Returns the entry of the greatest key in the collection that is less than or equal to the given key, or {@code -1} if there is no such key.
      * @param key the key to find.
@@ -267,11 +268,11 @@ public class DoubleRbTree {
             if (comparator.compare(key, this.key[x]) < 0) {
                 x = left[x];  // key[x] > key
             } else {
-            	entry = x; // key[x] <= key, this is a candidate
+                entry = x; // key[x] <= key, this is a candidate
                 x = right[x];
             }
         }
-        return entry;        
+        return entry;
     }
 
     /**
@@ -284,15 +285,15 @@ public class DoubleRbTree {
         int entry = -1;
         while (x != -1) {
             if (comparator.compare(key, this.key[x]) <= 0) {
-            	entry = x; // key[x] >= key, this is a candidate
+                entry = x; // key[x] >= key, this is a candidate
                 x = left[x];  // key[x] < key
             } else {
                 x = right[x]; // key[x] < key
             }
         }
-        return entry;        
+        return entry;
     }
-    
+
     /**
      * Insert a key in the collection.
      * If the collection already contained the key, the existing entry is returned.
@@ -303,7 +304,7 @@ public class DoubleRbTree {
         int parent = -1;
         int entry = root;
         int cmp = 0;
-        
+
         while (entry != -1) {
             parent = entry;
             cmp = comparator.compare(key, this.key[entry]);
@@ -315,7 +316,7 @@ public class DoubleRbTree {
                 return entry;
             }
         }
-        
+
         entry = newEntry();
         this.key[entry] = key;
         this.parent[entry] = parent;
@@ -343,7 +344,7 @@ public class DoubleRbTree {
         int parent = -1;
         int entry = root;
         int cmp = 0;
-        
+
         while (entry != -1) {
             parent = entry;
             cmp = comparator.compare(key, this.key[entry]);
@@ -353,7 +354,7 @@ public class DoubleRbTree {
                 entry = right[entry];
             }
         }
-        
+
         entry = newEntry();
         this.key[entry] = key;
         this.parent[entry] = parent;
@@ -370,14 +371,14 @@ public class DoubleRbTree {
         }
         return entry;
     }
-    
+
     /** 
      * Remove the specified entry from the collection.
      * @param entry to remove.
      * @return the next entry.
      */
     public int removeEntry(int entry) {
-    	int next = nextEntry(entry);
+        int next = nextEntry(entry);
         int spliceEntry = (left[entry] == -1 || right[entry] == -1) ? entry : next;
         // if entry != -1 then spliceEntry != -1
         // If entry has a right child then entry's successor can't have a left child  
@@ -397,7 +398,7 @@ public class DoubleRbTree {
         if (spliceEntry != entry) {
             // Replace entry to remove in the tree with spliceEntry
             this.color[spliceEntry] = this.color[entry];
-            
+
             int right = this.right[entry];
             this.right[spliceEntry] = right;
             if (right != -1) {
@@ -417,9 +418,9 @@ public class DoubleRbTree {
             } else {
                 this.right[parent] = spliceEntry;
             }
-            
+
             if (spliceParent == entry) {
-            	spliceParent = spliceEntry;
+                spliceParent = spliceEntry;
             }
         }
         if (spliceColor == BLACK) {
@@ -432,12 +433,12 @@ public class DoubleRbTree {
 
         return next;
     }
-    
-	//   x            y
-	//  / \          / \
-	// a   y   -->  x   c
-	//    / \      / \
-	//   b   c    a   b
+
+    //   x            y
+    //  / \          / \
+    // a   y   -->  x   c
+    //    / \      / \
+    //   b   c    a   b
     private int rotateLeft(int x) {
         int y = right[x];
         right[x] = left[y];
@@ -456,7 +457,7 @@ public class DoubleRbTree {
         parent[x] = y;
         return y;
     }
-    
+
     //     x           y
     //    / \         / \
     //   y   c  -->  a   x
@@ -487,8 +488,8 @@ public class DoubleRbTree {
         while (entry != root && color[parent] == RED) {
             int grandParent = this.parent[parent];
             if (grandParent == -1) {
-            	// Just need to make the parent/root black
-            	break;
+                // Just need to make the parent/root black
+                break;
             } else if (parent == left[grandParent]) {
                 int uncle = right[grandParent];
                 if (uncle != -1 && color[uncle] == RED) {
@@ -499,7 +500,7 @@ public class DoubleRbTree {
                     parent = this.parent[entry];
                 } else {
                     if (entry == right[parent]) {
-                    	// operation swaps entry and parent while grandParent stays the same  
+                        // operation swaps entry and parent while grandParent stays the same  
                         entry = parent;
                         parent = rotateLeft(parent);
                     }
@@ -518,7 +519,7 @@ public class DoubleRbTree {
                     parent = this.parent[entry];
                 } else {
                     if (entry == left[parent]) {
-                    	// operation swaps entry and parent while grandParent stays the same  
+                        // operation swaps entry and parent while grandParent stays the same  
                         entry = parent;
                         parent = rotateRight(parent);
                     }
@@ -531,7 +532,7 @@ public class DoubleRbTree {
         }
         color[root] = BLACK;
     }
-    
+
     private void rebalanceRemove(int entry, int child) {
         // It is possible that child == -1
         // parent == -1 only when child == root
@@ -541,7 +542,7 @@ public class DoubleRbTree {
                 int sibling = right[entry];
                 if (sibling == -1) {
                     child = entry;
-                    entry = this.parent[child];                    
+                    entry = this.parent[child];
                 } else {
                     if (color[sibling] == RED) {
                         color[sibling] = BLACK;  // sibling becomes grandParent after rotation
@@ -554,7 +555,7 @@ public class DoubleRbTree {
                     int leftNephew = left[sibling];
                     int rightNephew = right[sibling];
                     if ((leftNephew == -1 || color[leftNephew] == BLACK) &&
-                    		(rightNephew == -1 || color[rightNephew] == BLACK)) {
+                            (rightNephew == -1 || color[rightNephew] == BLACK)) {
                         color[sibling] = RED;
                         child = entry;
                         entry = this.parent[child];
@@ -578,7 +579,7 @@ public class DoubleRbTree {
                 int sibling = left[entry];
                 if (sibling == -1) {
                     child = entry;
-                    entry = this.parent[child];                    
+                    entry = this.parent[child];
                 } else {
                     if (sibling != -1 && color[sibling] == RED) {
                         color[sibling] = BLACK; // sibling becomes grandParent after rotation
@@ -591,7 +592,7 @@ public class DoubleRbTree {
                     int leftNephew = left[sibling];
                     int rightNephew = right[sibling];
                     if ((leftNephew == -1 || color[leftNephew] == BLACK) &&
-                    		(rightNephew == -1 || color[rightNephew] == BLACK)) {
+                            (rightNephew == -1 || color[rightNephew] == BLACK)) {
                         color[sibling] = RED;
                         child = entry;
                         entry = this.parent[child];
@@ -619,51 +620,51 @@ public class DoubleRbTree {
     }
 
     public ByteStringBuilder toString(ByteStringBuilder sb) {
-    	for (int entry = firstEntry(); entry != -1; entry = nextEntry(entry)) {
-    		sb.append("[entry=").append(entry).append("]");
-    		sb.append("[key=").append(key[entry]).append("]");
-    		sb.append("[parent=").append(parent[entry]).append("]");
-    		sb.append("[left=").append(left[entry]).append("]");
-    		sb.append("[right=").append(right[entry]).append("]");
-    		sb.append("\n");
-    	}
-    	return sb;
+        for (int entry = firstEntry(); entry != -1; entry = nextEntry(entry)) {
+            sb.append("[entry=").append(entry).append("]");
+            sb.append("[key=").append(key[entry]).append("]");
+            sb.append("[parent=").append(parent[entry]).append("]");
+            sb.append("[left=").append(left[entry]).append("]");
+            sb.append("[right=").append(right[entry]).append("]");
+            sb.append("\n");
+        }
+        return sb;
     }
 
     public EntryIterator entryIterator(EntryIterator entryIterator) {
         entryIterator.init(this);
         return entryIterator;
     }
-    
+
     public static class EntryIterator {
-    	private DoubleRbTree rbTree;
-    	private int entry;
-    	private int nextEntry;
-    	
-    	/** Initialize the iterator at the beginning of the collection. */
-    	public void init(DoubleRbTree rbTree) {
-    		this.rbTree = rbTree;
-    		entry = -1;
-    		nextEntry = rbTree.firstEntry();
-    	}
-    	
-		/** Returns {@code true} if the iteration has more elements.
-		 * {@link #hasNext} returning true guarantees that {@link #nextEntry} will not return -1.*/
-		public boolean hasNext() {
-			return nextEntry != -1;
-		}
+        private DoubleRbTree rbTree;
+        private int entry;
+        private int nextEntry;
 
-		/** Returns the next entry in the collection or {@code -1} if the iterator has reached the end. */
-		public int nextEntry() {
-			entry = nextEntry;
-    		nextEntry = rbTree.nextEntry(nextEntry);
-			return entry;
-	    }
+        /** Initialize the iterator at the beginning of the collection. */
+        public void init(DoubleRbTree rbTree) {
+            this.rbTree = rbTree;
+            entry = -1;
+            nextEntry = rbTree.firstEntry();
+        }
 
-		/** Remove from the iteration's current entry from the underlying collection. */
-		public void remove() {
-			rbTree.removeEntry(entry);
-			entry = -1;
-	    }
+        /** Returns {@code true} if the iteration has more elements.
+         * {@link #hasNext} returning true guarantees that {@link #nextEntry} will not return -1.*/
+        public boolean hasNext() {
+            return nextEntry != -1;
+        }
+
+        /** Returns the next entry in the collection or {@code -1} if the iterator has reached the end. */
+        public int nextEntry() {
+            entry = nextEntry;
+            nextEntry = rbTree.nextEntry(nextEntry);
+            return entry;
+        }
+
+        /** Remove from the iteration's current entry from the underlying collection. */
+        public void remove() {
+            rbTree.removeEntry(entry);
+            entry = -1;
+        }
     }
 }

@@ -23,18 +23,20 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-import com.zerogc.util.EPollEventLoop;
-import com.zerogc.util.EventLoop;
-import com.zerogc.util.EventLoop.TimerListener;
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
-import com.zerogc.util.PollEventLoop;
-import com.zerogc.util.SelectorEventLoop;
-import com.zerogc.util.EventLoop.EventLoopListener;
-import com.zerogc.util.EventLoop.EventLoopSelectionKey;
+import com.zerogc.core.EPollEventLoop;
+import com.zerogc.core.EventLoop;
+import com.zerogc.core.PollEventLoop;
+import com.zerogc.core.SelectorEventLoop;
+import com.zerogc.core.EventLoop.EventLoopListener;
+import com.zerogc.core.EventLoop.EventLoopSelectionKey;
+import com.zerogc.core.EventLoop.TimerListener;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 /*
  DEVELOP=/home/macgarden/develop
+ HEAPTRACKER="-agentpath:$DEVELOP/zerogc/native/libheapTracker.so -Xbootclasspath/a:$DEVELOP/zerogc/native/heapTracker.jar"
  DEBUG=" -Xdebug -agentlib:jdwp=transport=dt_socket,server=y,address=36000,suspend=y"
 
  java -Djava.library.path=$DEVELOP/zerogc/native -cp $DEVELOP/zerogc/dist/ZeroGC-0.0.0.0.jar com.zerogc.util.TcpProxy -l 36000 -d localhost:36001
@@ -42,19 +44,19 @@ import com.zerogc.util.EventLoop.EventLoopSelectionKey;
 */
 
 public class TcpProxy implements EventLoopListener, TimerListener {
-    private static final Logger log = new Logger(TcpProxy.class.getSimpleName());
+    private static final Logger log = LogManager.getLogger(TcpProxy.class.getSimpleName());
 
     private EventLoop eventLoop;
     private ServerSocketChannel serverSocketChannel = null;
-    
+
     private InetSocketAddress sourceInetSocketAddress = null;
     private SocketChannel sourceSocketChannel = null;
     private EventLoopSelectionKey sourceSelectionKey = null;
-    
+
     private InetSocketAddress destInetSocketAddress = null;
     private SocketChannel destSocketChannel = null;
     private EventLoopSelectionKey destSelectionKey = null;
-    
+
     private final ByteBuffer sourceBuffer;
     private final ByteBuffer destBuffer;
 
@@ -64,18 +66,18 @@ public class TcpProxy implements EventLoopListener, TimerListener {
         this.sourceBuffer = ByteBuffer.allocateDirect(32*1024);
         this.destBuffer = ByteBuffer.allocateDirect(32*1024);
     }
-    
+
     public TcpProxy(TcpProxy tcpProxy) {
         this(tcpProxy.eventLoop);
         this.destInetSocketAddress = tcpProxy.destInetSocketAddress;
     }
-    
+
     public void initialize(Logger log, String[] args) throws Exception {
         boolean error = false;
-        
+
         for (int i=0; i < args.length && args[i].startsWith("-");) {
             String arg = args[i++];
-            
+
             if (arg.equals("-l")) {
                 if (i < args.length && !args[i].startsWith("-")) {
                     String host = args[i++];
@@ -117,7 +119,7 @@ public class TcpProxy implements EventLoopListener, TimerListener {
                 error = true;
             }
         }
-        
+
         if (error || args.length == 0 || this.destInetSocketAddress == null || this.sourceInetSocketAddress == null) {
             log.log(Level.ERROR, log.getSB().append("usage: ").append(this.getClass().getSimpleName()).append(" -l <local_port> -d <address:port>"));
             log.log(Level.ERROR, " -l <localport>: Listen for incoming connections on <local_port>");
@@ -132,18 +134,18 @@ public class TcpProxy implements EventLoopListener, TimerListener {
         socketChannel.socket().setTcpNoDelay(true);
         socketChannel.socket().setSoLinger(true, 0); 
     }
-    
+
     public void open() {
         try {
             this.serverSocketChannel = ServerSocketChannel.open();
             this.serverSocketChannel.configureBlocking(false);
             this.serverSocketChannel.socket().setReuseAddress(true);
-            
+
             this.serverSocketChannel.socket().bind(this.sourceInetSocketAddress);
             this.eventLoop.register(this.serverSocketChannel, SelectionKey.OP_ACCEPT, this);
         } catch (IOException e) {
             log.log(Level.INFO, log.getSB().append("Could not listen for connection on ").append(this.sourceInetSocketAddress.getAddress().getHostAddress()).append(":").append(this.sourceInetSocketAddress.getPort()));
-        }        
+        }
     }
 
     public void close() {
@@ -174,23 +176,23 @@ public class TcpProxy implements EventLoopListener, TimerListener {
     }
 
     // --------------------- IOHandler ---------------------
-    
+
     public void onAccept(SelectableChannel selectableChannel) {
         log.log(Level.INFO, "onAccept()");
         TcpProxy tcpProxy = new TcpProxy(this);
         tcpProxy.forward(selectableChannel);
     }
-    
+
     public void forward(SelectableChannel selectableChannel) {
         try {
             this.sourceBuffer.clear();
             this.destBuffer.clear();
-            
+
             this.serverSocketChannel = (ServerSocketChannel)selectableChannel;
             this.sourceSocketChannel = serverSocketChannel.accept();
             this.sourceSocketChannel.configureBlocking(false);
             configureTcpChannel(this.sourceSocketChannel);
-            
+
             log.log(Level.INFO, log.getSB().append("Open connection to ").append(this.destInetSocketAddress));
 
             this.destSocketChannel = SocketChannel.open();
@@ -199,7 +201,7 @@ public class TcpProxy implements EventLoopListener, TimerListener {
             if (this.destSocketChannel.connect(this.destInetSocketAddress)) {
                 onConnect(this.destSocketChannel);
             } else {
-            	this.destSelectionKey = this.eventLoop.register(this.destSocketChannel, SelectionKey.OP_CONNECT, this);
+                this.destSelectionKey = this.eventLoop.register(this.destSocketChannel, SelectionKey.OP_CONNECT, this);
             }
         } catch (Throwable t) {
             log.log(Level.ERROR, log.getSB().append("Failed to accept connetion on ").append(this.sourceInetSocketAddress), t);
@@ -252,7 +254,7 @@ public class TcpProxy implements EventLoopListener, TimerListener {
                 close();
                 return;
             } else {
-            	log.log(Level.DEBUG, log.getSB().append("Read ").append(len).append(" bytes"));
+                log.log(Level.DEBUG, log.getSB().append("Read ").append(len).append(" bytes"));
             }
             updateInterestOps(readSelectionKey, writeSelectionKey, buffer);
         } catch (Throwable e) {
@@ -260,20 +262,20 @@ public class TcpProxy implements EventLoopListener, TimerListener {
             close();
         }
     }
-    
+
     private void updateInterestOps(EventLoopSelectionKey readSelectionKey, EventLoopSelectionKey writeSelectionKey, ByteBuffer buffer) {
         if (buffer.hasRemaining()) {
-        	readSelectionKey.interestOps(readSelectionKey.interestOps() | SelectionKey.OP_READ);
+            readSelectionKey.interestOps(readSelectionKey.interestOps() | SelectionKey.OP_READ);
         } else {
-        	readSelectionKey.interestOps(readSelectionKey.interestOps() & ~SelectionKey.OP_READ);
+            readSelectionKey.interestOps(readSelectionKey.interestOps() & ~SelectionKey.OP_READ);
         }
         if (buffer.position() > 0) {
-        	writeSelectionKey.interestOps(writeSelectionKey.interestOps() | SelectionKey.OP_WRITE);
+            writeSelectionKey.interestOps(writeSelectionKey.interestOps() | SelectionKey.OP_WRITE);
         } else {
-        	writeSelectionKey.interestOps(writeSelectionKey.interestOps() & ~SelectionKey.OP_WRITE);
+            writeSelectionKey.interestOps(writeSelectionKey.interestOps() & ~SelectionKey.OP_WRITE);
         }
     }
-    
+
     public void onWrite(SelectableChannel socketChannel) {
         log.log(Level.DEBUG, "onWrite()");
         try {
@@ -292,14 +294,14 @@ public class TcpProxy implements EventLoopListener, TimerListener {
                 writeSelectionKey = this.destSelectionKey;
                 buffer = this.sourceBuffer;
             }
-        	buffer.flip();
+            buffer.flip();
             int len = writeSocketChannel.write(buffer);
             if (len < 0) {
                 log.log(Level.ERROR, log.getSB().append("Detected failure of session"));
                 close();
                 return;
             } else {
-            	log.log(Level.DEBUG, log.getSB().append("Written ").append(len).append(" bytes"));
+                log.log(Level.DEBUG, log.getSB().append("Written ").append(len).append(" bytes"));
             }
             buffer.compact();
             updateInterestOps(readSelectionKey, writeSelectionKey, buffer);
@@ -319,13 +321,13 @@ public class TcpProxy implements EventLoopListener, TimerListener {
     }
 
     public void onClose(SelectableChannel selectableChannel) {
-    	log.log(Level.INFO, "onClose");
+        log.log(Level.INFO, "onClose");
         close();
     }
 
     public static void main(String[] args) {
-    	log.setLevel(Level.INFO);
-    	
+        log.setLevel(Level.INFO);
+
         try {
             EventLoop eventLoop = new EPollEventLoop();
 

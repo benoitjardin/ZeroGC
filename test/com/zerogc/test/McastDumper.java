@@ -16,15 +16,16 @@ import java.nio.channels.Selector;
 import java.util.Iterator;
 import java.util.Set;
 
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 /**
  * @author Benoit Jardin
  */
 
 public class McastDumper {
-    static final Logger log = new Logger("McastDumper");
+    static final Logger log = LogManager.getLogger("McastDumper");
 
     static final int OFFSET_SESSION = 0;
     static final int OFFSET_FIRST_SEQUENCE = 4;

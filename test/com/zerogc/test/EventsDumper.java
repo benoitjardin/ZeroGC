@@ -6,9 +6,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 
-import com.zerogc.util.ByteStringBuilder;
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.core.ByteStringBuilder;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 //java -cp /sbcexp/cache/home/jardinbe/zerogc/dist/ZeroGC-0.0.0.0.jar com.zerogc.test.EventsDumper
 
@@ -17,7 +18,7 @@ import com.zerogc.util.Logger;
  */
 
 public class EventsDumper {
-    static final Logger log = new Logger("EventsDumper");
+    static final Logger log = LogManager.getLogger("EventsDumper");
     
     static final String[] hex = {
     "00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B", "0C", "0D", "0E", "0F",

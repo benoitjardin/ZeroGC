@@ -32,7 +32,7 @@ import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * @author Benoit Jardin
- * 
+ *
  * Class for parsing XSD schemas
  */
 public abstract class GeneratorBase extends DefaultHandler {
@@ -73,7 +73,7 @@ public abstract class GeneratorBase extends DefaultHandler {
     protected String location = "";
 
     final protected StringBuilder sb = new StringBuilder();
-    
+
     static class Type {
         String javaName;
         String xsdTypeName;
@@ -107,7 +107,7 @@ public abstract class GeneratorBase extends DefaultHandler {
             this.maxLength = maxLength;
             this.alignment = alignment;
         }
-        
+
         public boolean isString() {
             return javaName.equals("String") ||
                     (xsdTypeName.equals("xs:string") && !javaName.equals("byte"));
@@ -116,7 +116,6 @@ public abstract class GeneratorBase extends DefaultHandler {
         public boolean isChar() {
             return xsdTypeName.equals("xs:string") && javaName.equals("byte");
         }
-
     }
 
     public static class Pair <First, Second> {
@@ -136,31 +135,30 @@ public abstract class GeneratorBase extends DefaultHandler {
             return this.second;
         }
     }
-    
+
     public class MessageMetaData{
-    	
-    	private final String major;
-    	
-    	public MessageMetaData(String major) {
+
+        private final String major;
+
+        public MessageMetaData(String major) {
             this.major = major;
         }
 
-		public MessageMetaData(String major, boolean b) {
-			this.major = major;
-			
-		}
+        public MessageMetaData(String major, boolean b) {
+            this.major = major;
+        }
 
-		public String getMajor() {
-			return major;
-		}
+        public String getMajor() {
+            return major;
+        }
     }
-    
+
     protected GeneratorBase(String pkg) {
         this.pkg = pkg;
         this.inboundMessages = new TreeMap<String, List<MessageMetaData>>();
         this.outboundMessages = new TreeMap<String, List<MessageMetaData>>();
     }
-    
+
     protected GeneratorBase(GeneratorBase generator) {
         this.pkg = generator.pkg;
         this.prefix = generator.prefix;
@@ -168,34 +166,34 @@ public abstract class GeneratorBase extends DefaultHandler {
         this.inboundMessages = new TreeMap<String, List<MessageMetaData>>();
         this.outboundMessages = new TreeMap<String, List<MessageMetaData>>();
     }
-    
+
     protected abstract GeneratorBase cloneGenerator();
-    
+
     protected String getPackage() {
-    	return this.pkg;
+        return this.pkg;
     }
-    
+
     public void initialize(String xsdPath, String generatedDir)
     {
-    	// Make sure to generate files with Windows style CRLF
-    	//System.setProperty("line.separator", "\r\n");
-    	// Make sure to generate files with Unix style LF
-    	System.setProperty("line.separator", "\n");
-    	
-    	this.comment =
-            "/*\n" +
-            " * PLEASE DO NOT EDIT!\n" +
-            " * \n" +
-            " * This code has been automatically generated.\n" +
-            " * Generator: " + this.getClass().getName() + "\n" +
-            " * Schema: " + xsdPath + "\n" +
-            " */\n";
+        // Make sure to generate files with Windows style CRLF
+        //System.setProperty("line.separator", "\r\n");
+        // Make sure to generate files with Unix style LF
+        System.setProperty("line.separator", "\n");
+
+        this.comment =
+                "/*\n" +
+                " * PLEASE DO NOT EDIT!\n" +
+                " * \n" +
+                " * This code has been automatically generated.\n" +
+                " * Generator: " + this.getClass().getName() + "\n" +
+                " * Schema: " + xsdPath + "\n" +
+                " */\n";
         this.xsdPath = xsdPath;
         this.generatedDir = generatedDir;
         this.simpleTypeHashtable = new Hashtable<String, Type>();
         this.complexTypeHashtable = new Hashtable<String, ArrayList<Pair<String, String>>>();
     }
-    
+
     public void initialize(String xsdPath, GeneratorBase generator)
     {
         this.xsdPath = xsdPath;
@@ -203,7 +201,7 @@ public abstract class GeneratorBase extends DefaultHandler {
         this.simpleTypeHashtable = generator.simpleTypeHashtable;
         this.complexTypeHashtable = generator.complexTypeHashtable;
     }
-    
+
     protected String pascal(String str) {
         sb.setLength(0);
         for (int i=0; i< str.length(); i++) {
@@ -269,7 +267,7 @@ public abstract class GeneratorBase extends DefaultHandler {
                 }
             }
         } else if (location.equals("/xs:schema/xs:include")) {
-            String schemaLocation = attributes.getValue("schemaLocation");            
+            String schemaLocation = attributes.getValue("schemaLocation");
             try {
                 XMLReader xmlReader = XMLReaderFactory.createXMLReader();
                 String includeXsd = new File(xsdPath).getParent() + "/" + schemaLocation;
@@ -303,25 +301,25 @@ public abstract class GeneratorBase extends DefaultHandler {
                 // Don't cache XSD native types in simpleTypeHashtable
             }
             tableColumns.add(new Pair<String, String>(columnName, columnTypeName));
-		} else if (location.equals("/xs:schema/xs:element/xs:unique")) {
-			//String keyName = attributes.getValue("name");
-			//System.out.println("Primary Key: " + keyName);
-			index.clear();
-		} else if (location.equals("/xs:schema/xs:element/xs:unique/xs:field")) {
-			// PRIMARY KEY
-			String keyColumnName = attributes.getValue("xpath").substring(1);
-			//System.out.println("PrimaryKeyColumnName: " + keyColumnName);
-			index.add(keyColumnName);
-		} else if (location.equals("/xs:schema/xs:element/xs:key")) {
-			//String keyName = attributes.getValue("name");
-			//System.out.println("Key: " + keyName);
-			index.clear();
-		} else if (location.equals("/xs:schema/xs:element/xs:key/xs:field")) {
-			// PRIMARY KEY
-			String keyColumnName = attributes.getValue("xpath").substring(1);
-			//System.out.println("KeyColumnName: " + keyColumnName);
-			index.add(keyColumnName);
-		}
+        } else if (location.equals("/xs:schema/xs:element/xs:unique")) {
+            //String keyName = attributes.getValue("name");
+            //System.out.println("Primary Key: " + keyName);
+            index.clear();
+        } else if (location.equals("/xs:schema/xs:element/xs:unique/xs:field")) {
+            // PRIMARY KEY
+            String keyColumnName = attributes.getValue("xpath").substring(1);
+            //System.out.println("PrimaryKeyColumnName: " + keyColumnName);
+            index.add(keyColumnName);
+        } else if (location.equals("/xs:schema/xs:element/xs:key")) {
+            //String keyName = attributes.getValue("name");
+            //System.out.println("Key: " + keyName);
+            index.clear();
+        } else if (location.equals("/xs:schema/xs:element/xs:key/xs:field")) {
+            // PRIMARY KEY
+            String keyColumnName = attributes.getValue("xpath").substring(1);
+            //System.out.println("KeyColumnName: " + keyColumnName);
+            index.add(keyColumnName);
+        }
     }
 
     @Override
@@ -330,27 +328,27 @@ public abstract class GeneratorBase extends DefaultHandler {
         super.characters(ch, start, length);
         characters += new String(ch, start, length);
     }
-    
+
     @Override
     public void endElement(String uri, String localName, String qName) throws SAXException
     {
         if (location.equals("/xs:schema/xs:simpleType/xs:restriction/xs:enumeration/xs:annotation/xs:appinfo")) {
-        	if (enumAppInfoDirection != null) {
-        	    enumAppInfoDirectionText = characters.trim();
-	            if (enumAppInfoDirection.equals("Inbound")) {
-	                if (!inboundMessages.containsKey(enumAppInfoDirectionText)) {
-	                    inboundMessages.put(enumAppInfoDirectionText, new ArrayList<MessageMetaData>());
-	                }
-	                inboundMessages.get(enumAppInfoDirectionText).add(new MessageMetaData(enumAppInfoText));
-	            } else if (enumAppInfoDirection.equals("Outbound")) {
-	                if (!outboundMessages.containsKey(enumAppInfoDirectionText)) {
-	                    outboundMessages.put(enumAppInfoDirectionText, new ArrayList<MessageMetaData>());
-	                }
-	                outboundMessages.get(enumAppInfoDirectionText).add(new MessageMetaData(enumAppInfoText));
-	            }
-        	} else {
+            if (enumAppInfoDirection != null) {
+                enumAppInfoDirectionText = characters.trim();
+                if (enumAppInfoDirection.equals("Inbound")) {
+                    if (!inboundMessages.containsKey(enumAppInfoDirectionText)) {
+                        inboundMessages.put(enumAppInfoDirectionText, new ArrayList<MessageMetaData>());
+                    }
+                    inboundMessages.get(enumAppInfoDirectionText).add(new MessageMetaData(enumAppInfoText));
+                } else if (enumAppInfoDirection.equals("Outbound")) {
+                    if (!outboundMessages.containsKey(enumAppInfoDirectionText)) {
+                        outboundMessages.put(enumAppInfoDirectionText, new ArrayList<MessageMetaData>());
+                    }
+                    outboundMessages.get(enumAppInfoDirectionText).add(new MessageMetaData(enumAppInfoText));
+                }
+            } else {
                 enumAppInfoText = characters.trim();
-        	}
+            }
         }
         //String tagName = xmlPullParser.getName();
         if (location.equals("/xs:schema/xs:simpleType")) {
@@ -381,11 +379,11 @@ public abstract class GeneratorBase extends DefaultHandler {
             this.generatedDir = genDir.getCanonicalPath();
 
             XMLReader xmlReader = XMLReaderFactory.createXMLReader();
-            
+
             System.out.println(String.format("%1$s -dest %2$s", GeneratorBase.class.getSimpleName(), destPath)); ;
             System.out.println("Parse schema file: " + xsdPath);
             System.out.println("Current directory: " + new File(".").getCanonicalPath());
-            
+
             initialize(xsdPath, generatedDir);
             xmlReader.setContentHandler(this);
             xmlReader.parse(xsdPath);
@@ -395,66 +393,66 @@ public abstract class GeneratorBase extends DefaultHandler {
             System.out.println("IOException: " + e.getMessage());
         }
     }
-    
+
     protected void parseArgs(String[] args){
         // Parse command line arguments
         boolean error = true;
-    	 int i= 0;
-         while (i < args.length && args[i].startsWith("-")) {
-             String arg = args[i++].toLowerCase();
-             if (arg.equals("-dest")) {
-                 error = false;
-                 if (i < args.length) {
-                	 destPath = args[i++];
-                     System.err.println("Generate source under: " + destPath);
-                 } else {
-                     System.err.println("-dest requires a dir path");
-                     error = true;
-                     break;
-                 }
-             } else if (arg.equals("-xsd")) {
-                 error = false;
-                 if (i < args.length) {
-                	 xsdPath = args[i++];
-                     System.err.println("Using xsd path: " + xsdPath);
-                 } else {
-                     System.err.println("-xsd requires a file path");
-                     error = true;
-                     break;
-                 }
-             } else if (arg.equals("-pkg")) {
-                 error = false;
-                 if (i < args.length) {
-                	 pkg = args[i++];
-                     System.err.println("Using pkg: " + pkg);
-                 } else {
-                     System.err.println("-pkg requires a package name");
-                     error = true;
-                     break;
-                 }
-             } else if (arg.equals("-prefix")) {
-                 error = false;
-                 if (i < args.length) {
-                	 this.prefix = args[i++];
-                     System.err.println("Using prefix: " + prefix);
-                 } else {
-                     System.err.println("-prefix requires a prefix");
-                     error = true;
-                     break;
-                 }
-             } else {
-                 error = true;
-                 break;
-             }
-         }
-         if (error || destPath == null) {
-             System.err.println("Current directory: " + new File(".").getAbsolutePath());
-             System.err.println(String.format("usage: %1$s -dest <path> -xsd <path> -prefix <prefix> -pkg <pkg>", new Object[] { GeneratorBase.class.getSimpleName() }));
-             System.err.println(" -dest <path>: destination directory");
-             System.err.println(" -xsd <path>: source file path");
-             System.err.println(" -prefix <prefix>: prefix");
-             System.err.println(" -pkg <pkg>: package name");
-             System.exit(-1);
-         }
+        int i= 0;
+        while (i < args.length && args[i].startsWith("-")) {
+            String arg = args[i++].toLowerCase();
+            if (arg.equals("-dest")) {
+                error = false;
+                if (i < args.length) {
+                    destPath = args[i++];
+                    System.err.println("Generate source under: " + destPath);
+                } else {
+                    System.err.println("-dest requires a dir path");
+                    error = true;
+                    break;
+                }
+            } else if (arg.equals("-xsd")) {
+                error = false;
+                if (i < args.length) {
+                    xsdPath = args[i++];
+                    System.err.println("Using xsd path: " + xsdPath);
+                } else {
+                    System.err.println("-xsd requires a file path");
+                    error = true;
+                    break;
+                }
+            } else if (arg.equals("-pkg")) {
+                error = false;
+                if (i < args.length) {
+                    pkg = args[i++];
+                    System.err.println("Using pkg: " + pkg);
+                } else {
+                    System.err.println("-pkg requires a package name");
+                    error = true;
+                    break;
+                }
+            } else if (arg.equals("-prefix")) {
+                error = false;
+                if (i < args.length) {
+                    this.prefix = args[i++];
+                    System.err.println("Using prefix: " + prefix);
+                } else {
+                    System.err.println("-prefix requires a prefix");
+                    error = true;
+                    break;
+                }
+            } else {
+                error = true;
+                break;
+            }
+        }
+        if (error || destPath == null) {
+            System.err.println("Current directory: " + new File(".").getAbsolutePath());
+            System.err.println(String.format("usage: %1$s -dest <path> -xsd <path> -prefix <prefix> -pkg <pkg>", new Object[] { GeneratorBase.class.getSimpleName() }));
+            System.err.println(" -dest <path>: destination directory");
+            System.err.println(" -xsd <path>: source file path");
+            System.err.println(" -prefix <prefix>: prefix");
+            System.err.println(" -pkg <pkg>: package name");
+            System.exit(-1);
+        }
     }
 }

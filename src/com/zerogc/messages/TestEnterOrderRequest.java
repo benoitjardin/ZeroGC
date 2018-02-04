@@ -11,9 +11,10 @@ package com.zerogc.messages;
 
 
 import java.nio.ByteBuffer;
-import com.zerogc.util.ByteSlice;
-import com.zerogc.util.ByteStringBuilder;
-import com.zerogc.util.ByteUtils;
+
+import com.zerogc.core.ByteSlice;
+import com.zerogc.core.ByteStringBuilder;
+import com.zerogc.core.ByteUtils;
 
 public class TestEnterOrderRequest {
     public static class Lengths {

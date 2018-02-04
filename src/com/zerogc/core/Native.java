@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zerogc.util;
+package com.zerogc.core;
 
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.Pipe.SinkChannel;
@@ -40,7 +40,7 @@ public class Native {
     public static final short POLL_FD_OFFSET     = 0;
     public static final short POLL_EVENT_OFFSET  = 4;
     public static final short POLL_REVENT_OFFSET = 6;
-    
+
     // struct pollfd {
     //     int   fd;         /* file descriptor */
     //     short events;     /* requested events */
@@ -48,7 +48,7 @@ public class Native {
     // };
 
     /*************************************************************/
-    
+
     // EPOLL_EVENTS
     static final int EPOLLIN      = 0x001;
     static final int EPOLLPRI     = 0x002;
@@ -72,7 +72,7 @@ public class Native {
     static final int EPOLLEVENT_EVENTS_OFFSET    = 0;
     static final int EPOLLEVENT_FD_OFFSET;
     static final int EPOLLEVENT_SIZE;
-    
+
     //typedef union epoll_data {
     //    void *ptr;
     //    int fd;
@@ -90,7 +90,7 @@ public class Native {
     public static native long currentTimeMicros();
 
     public static native int errno();
-    
+
     public static native int getFdVal_ServerSocketChannel(ServerSocketChannel serverSocketChannel);
     public static native int getFdVal_SocketChannel(SocketChannel socketChannel);
     public static native int getFdVal_DatagramChannel(DatagramChannel datagramChannel);
@@ -100,22 +100,22 @@ public class Native {
     public static native int select(int nfds, long readfdsAddress, long writefdsAddress, long exceptfdsAddress, long timeout);
 
     public static native int poll(long fdsAddress, int nfds, int timeout);
-    
+
     public static native int epoll_create(int size);
     public static native int epoll_ctl(int epfd, int opcode, int fd, int events);
     public static native int epoll_wait(int epfd, long eventsAddress, int maxevents, int timeout);
     public static native int getOffset_epoll_event_epoll_data_fd();
-    
+
     public static native int setMcastTtl(DatagramChannel datagramChannel, byte ttl);
     public static native int setMcastLoop(DatagramChannel datagramChannel, byte loop);
     public static native int setMcastIf(DatagramChannel datagramChannel, int ifaddr);
     public static native int joinMcastGroup(DatagramChannel datagramChannel, int mcastaddr, int ifaddr);
     public static native int leaveMcastGroup(DatagramChannel datagramChannel, int mcastaddr, int ifaddr);
-    
-	static {
-		System.loadLibrary("zerogc");
-		Native.initIDs();
+
+    static {
+        System.loadLibrary("zerogc");
+        Native.initIDs();
         EPOLLEVENT_FD_OFFSET        = Native.getOffset_epoll_event_epoll_data_fd();
         EPOLLEVENT_SIZE             = EPOLLEVENT_FD_OFFSET + 8;
-	}
+    }
 }

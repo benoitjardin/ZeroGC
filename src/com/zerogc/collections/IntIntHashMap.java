@@ -14,37 +14,38 @@
  * limitations under the License.
  */
 package com.zerogc.collections;
+import com.zerogc.core.ByteSlice;
 
 public class IntIntHashMap extends IntHashSet {
-	private int[] value;
+    private int[] value;
 
     @Override
-	protected void grow(int capacity, int newCapacity) {
-		super.grow(capacity, newCapacity);
-		
-		int[] newValue = new int[newCapacity];
+    protected void grow(int capacity, int newCapacity) {
+        super.grow(capacity, newCapacity);
+
+        int[] newValue = new int[newCapacity];
         if (capacity > 0) {
             System.arraycopy(this.value, 0, newValue, 0, capacity);
         }
         this.value = newValue;
-	}
-	
-    public IntIntHashMap() {
-    	this(IntIntHashMap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
     }
-    
+
+    public IntIntHashMap() {
+        this(IntIntHashMap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+    }
+
     public IntIntHashMap(String name) {
         this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
     }
 
     public IntIntHashMap(String name, int initialCapacity) {
-    	this(name, initialCapacity, GROWTH_FACTOR);
+        this(name, initialCapacity, GROWTH_FACTOR);
     }
 
     public IntIntHashMap(String name, int initialCapacity, float growthFactor) {
-    	super(name, initialCapacity, growthFactor);
+        super(name, initialCapacity, growthFactor);
     }
-    
+
     public final int getValue(int entry) {
         return this.value[entry];
     }
@@ -54,8 +55,8 @@ public class IntIntHashMap extends IntHashSet {
     }
 
     public final int insert(int key, int value) {
-    	int entry = super.insert(key);
-    	this.value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        this.value[entry] = value;
+        return entry;
     }
 }

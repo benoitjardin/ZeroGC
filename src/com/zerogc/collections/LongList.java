@@ -15,11 +15,12 @@
  */
 package com.zerogc.collections;
 
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 public class LongList {
-	protected final Logger log;
+    protected final Logger log;
 
     protected int first = -1;
     protected int last = -1;
@@ -27,12 +28,12 @@ public class LongList {
     protected Store store;
 
     private int size = 0;
-    
-    public static class Store {
-    	public static final int INITIAL_CAPACITY = 16;
-    	public static final float GROWTH_FACTOR = 2.0f;
 
-    	protected final Logger log;
+    public static class Store {
+        public static final int INITIAL_CAPACITY = 16;
+        public static final float GROWTH_FACTOR = 2.0f;
+
+        protected final Logger log;
 
         private float growthFactor = GROWTH_FACTOR;
 
@@ -43,23 +44,23 @@ public class LongList {
         protected int[] next;
         protected int[] prev;
         protected long[] key;
-        
+
         public Store() {
-        	this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+            this(Store.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
         }
-        
+
         public Store(String name) {
             this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity) {
-        	this(name, initialCapacity, GROWTH_FACTOR);
+            this(name, initialCapacity, GROWTH_FACTOR);
         }
 
         public Store(String name, int initialCapacity, float growthFactor) {
-        	this.log = new Logger(name);
-        	 
-        	if (initialCapacity < 0) {
+            this.log = LogManager.getLogger(name);
+
+            if (initialCapacity < 0) {
                 throw new IllegalArgumentException("Illegal Capacity: " + initialCapacity);
             }
             if (growthFactor <= 0 || Float.isNaN(growthFactor)) {
@@ -69,7 +70,7 @@ public class LongList {
                 initialCapacity = 1;
             }
             this.growthFactor = growthFactor;
-                
+
             grow(0, initialCapacity);
         }
 
@@ -80,9 +81,9 @@ public class LongList {
         public int capacity() {
             return this.next.length;
         }
-        
+
         public int size() {
-        	return this.size;
+            return this.size;
         }
 
         protected void grow(int capacity, int newCapacity) {
@@ -97,46 +98,46 @@ public class LongList {
                 System.arraycopy(prev, 0, newPrev, 0, capacity);
                 System.arraycopy(key, 0, newKey, 0, capacity);
             }
-            
+
             next = newNext;
             prev = newPrev;
             key = newKey;
         }
-        
+
         public void clear() {
             this.freeEntry = -1;
             this.highMark = 0;
             this.size = 0;
         }
-        
+
         protected int newEntry() {
             int entry = this.freeEntry;
             if (entry != -1) {
-            	this.freeEntry = this.next[entry];
+                this.freeEntry = this.next[entry];
             } else {
                 int capacity = this.next.length;
-            	if (highMark >= capacity) {
-    	            // Grow the arrays
-    	            int newCapacity = (int) (capacity * this.growthFactor);
-    	            grow(capacity, newCapacity);
-            	}
-    	        entry = highMark++;
+                if (highMark >= capacity) {
+                    // Grow the arrays
+                    int newCapacity = (int) (capacity * this.growthFactor);
+                    grow(capacity, newCapacity);
+                }
+                entry = highMark++;
             }
-            
+
             this.next[entry] = -1;
             this.prev[entry] = -1;
 
             this.size++;
             return entry;
         }
-        
+
         protected void removeEntry(int entry) {
-        	this.next[entry] = this.freeEntry;
+            this.next[entry] = this.freeEntry;
             this.freeEntry = entry;
             this.size--;
         }
     }
-    
+
     public LongList() {
         this(LongList.class.getSimpleName(), Store.INITIAL_CAPACITY, Store.GROWTH_FACTOR);
     }
@@ -150,14 +151,14 @@ public class LongList {
     }
 
     public LongList(String name, int initialCapacity, float growthFactor) {
-    	this(name, new Store(name, initialCapacity, growthFactor));
+        this(name, new Store(name, initialCapacity, growthFactor));
     }
-    
+
     public LongList(String name, Store store) {
-    	this.log = new Logger(name);
-    	this.store = store;
+        this.log = LogManager.getLogger(name);
+        this.store = store;
     }
-    
+
     public int highMark() {
         return this.store.highMark();
     }
@@ -169,24 +170,24 @@ public class LongList {
     public int size() {
         return this.size;
     }
-    
+
     public boolean isEmpty() {
         return this.size == 0;
     }
-    
+
     public void clear() {
-    	for (int entry = firstEntry(); entry != -1; entry = nextEntry(entry)) {
-    		store.removeEntry(entry);
-    	}
+        for (int entry = firstEntry(); entry != -1; entry = nextEntry(entry)) {
+            store.removeEntry(entry);
+        }
         this.first = -1;
         this.last = -1;
         this.size = 0;
     }
-    
+
     public long getKey(int entry) {
-    	return this.store.key[entry];
+        return this.store.key[entry];
     }
-    
+
     private int newEntry() {
         this.size++;
         return store.newEntry();
@@ -201,15 +202,15 @@ public class LongList {
     public int lastEntry() {
         return this.last;
     }
-    
+
     /** Returns the next entry in the collection or {@code -1} when the end is reached. */
     public int nextEntry(int x) {
-    	return this.store.next[x];
+        return this.store.next[x];
     }
 
     /** Returns the previous entry in the collection or {@code -1} when the beginning is reached. */
     public int prevEntry(int x) {
-    	return this.store.prev[x];
+        return this.store.prev[x];
     }
 
     /** 
@@ -218,84 +219,83 @@ public class LongList {
      * @return the next entry.
      */
     protected final int removeEntry(int entry) {
-    	int next = this.store.next[entry];
-    	int prev = this.store.prev[entry]; 
-    	if (prev == -1) {
-    		this.first = next; 
-    	} else {
-    		this.store.next[prev] = next;
-    	}
-    	if (next == -1) {
-    		this.last = prev;
-    	} else {
-    		this.store.prev[next] = prev;
-    	}
-    	store.removeEntry(entry);
+        int next = this.store.next[entry];
+        int prev = this.store.prev[entry]; 
+        if (prev == -1) {
+            this.first = next; 
+        } else {
+            this.store.next[prev] = next;
+        }
+        if (next == -1) {
+            this.last = prev;
+        } else {
+            this.store.prev[next] = prev;
+        }
+        store.removeEntry(entry);
         this.size--;
         return next;
     }
 
-    
     public int addFirst(long key) {
-    	int entry = newEntry();
-    	this.store.prev[entry] = -1;
-    	this.store.next[entry] = this.first;
-    	if (this.first == -1) {
-    		this.last = entry;
-    	} else {
-    		this.store.prev[this.first] = entry;
-    	}
-    	this.first = entry;
-    	this.store.key[entry] = key;
-    	return entry;
+        int entry = newEntry();
+        this.store.prev[entry] = -1;
+        this.store.next[entry] = this.first;
+        if (this.first == -1) {
+            this.last = entry;
+        } else {
+            this.store.prev[this.first] = entry;
+        }
+        this.first = entry;
+        this.store.key[entry] = key;
+        return entry;
     }
 
     public int addLast(long key) {
-    	int entry = newEntry();
-    	this.store.next[entry] = -1;
-    	this.store.prev[entry] = this.last;
-    	if (this.last == -1) {
-    		this.first = entry;
-    	} else {
-    		this.store.next[this.last] = entry;
-    	}
-    	this.last = entry;
-    	this.store.key[entry] = key;
-    	return entry;
+        int entry = newEntry();
+        this.store.next[entry] = -1;
+        this.store.prev[entry] = this.last;
+        if (this.last == -1) {
+            this.first = entry;
+        } else {
+            this.store.next[this.last] = entry;
+        }
+        this.last = entry;
+        this.store.key[entry] = key;
+        return entry;
     }
 
     public EntryIterator entryIterator(EntryIterator entryIterator) {
         entryIterator.init(this);
         return entryIterator;
     }
-    
+
     public static class EntryIterator {
-    	private LongList list;
-    	private int entry;
-    	private int nextEntry;
-    	
-    	public EntryIterator() {
-    	}
-    	
-    	public void init(LongList list) {
-    		this.list = list;
-    		entry = -1;
-    		nextEntry = list.firstEntry();
-    	}
-    	
-		public boolean hasNext() {
-			return nextEntry != -1;
-		}
+        private LongList list;
+        private int entry;
+        private int nextEntry;
 
-		public int nextEntry() {
-			entry = nextEntry;
-    		nextEntry = list.nextEntry(nextEntry);
-			return entry;
-	    }
+        public EntryIterator() {
+        }
 
-		public void remove() {
-			list.removeEntry(entry);
-			entry = -1;
-	    }
+        public void init(LongList list) {
+            this.list = list;
+            entry = -1;
+            nextEntry = list.firstEntry();
+        }
+
+        public boolean hasNext() {
+            return nextEntry != -1;
+        }
+
+        public int nextEntry() {
+            entry = nextEntry;
+            nextEntry = list.nextEntry(nextEntry);
+            return entry;
+        }
+
+        public void remove() {
+            list.removeEntry(entry);
+            entry = -1;
+        }
     }
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zerogc.util;
+package com.zerogc.core;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
@@ -30,6 +30,9 @@ import java.util.Set;
 
 import com.zerogc.collections.LongHeap;
 import com.zerogc.collections.LongObjectHeap;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 /**
  * Portable event loop based on the Java NIO Selector.
@@ -38,7 +41,7 @@ import com.zerogc.collections.LongObjectHeap;
  *
  */
 public class SelectorEventLoop implements EventLoop {
-    static final Logger log = new Logger(SelectorEventLoop.class.getSimpleName());
+    static final Logger log = LogManager.getLogger(SelectorEventLoop.class.getSimpleName());
 
     private static final int CLOCK_GRANULARITY = 10;
 
@@ -48,8 +51,8 @@ public class SelectorEventLoop implements EventLoop {
     EventLoopListener selectEventHandler = null;
 
     static class TimerEvents extends LongHeap {
-    	private long[] key;
-    	private EventLoopListener[] value;
+        private long[] key;
+        private EventLoopListener[] value;
 
         @Override
         protected void grow(int capacity, int newCapacity) {
@@ -64,27 +67,27 @@ public class SelectorEventLoop implements EventLoop {
             this.key = newKey;
             this.value = newValue;
         }
-        
+
         public EventLoopListener getValue(int entry) {
             return this.value[entry];
         }
-        
+
         public int put(long key, EventLoopListener eventHandler) {
-        	int entry = super.insert(key);
-        	this.value[entry] = eventHandler; 
-        	return entry;
+            int entry = super.insert(key);
+            this.value[entry] = eventHandler;
+            return entry;
         }
     }
-    
+
     private static class SelectorSelectionKey implements EventLoopSelectionKey {
         private SelectionKey selectionKey;
         private EventLoopListener eventLoopHandler;
-        
+
         public SelectorSelectionKey(SelectionKey selectionKey, EventLoopListener eventLoopHandler) {
             this.selectionKey = selectionKey;
             this.eventLoopHandler = eventLoopHandler;
         }
-        
+
         @Override
         public void cancel() {
             this.selectionKey.cancel();
@@ -98,7 +101,7 @@ public class SelectorEventLoop implements EventLoop {
         public void interestOps(int ops) {
             this.selectionKey.interestOps(ops);
         }
-        
+
     }
     // --------------------- Basic event loop ---------------------
 
@@ -106,7 +109,7 @@ public class SelectorEventLoop implements EventLoop {
     public long currentMicros() {
         return now*1000;
     }
-    
+
     @Override
     public long currentMillis() {
         return now;
@@ -120,14 +123,14 @@ public class SelectorEventLoop implements EventLoop {
             log.log(Level.INFO, "open caught: ", e);
         }
     }
-    
+
     @Override
     public void close() {
-    	try {
-	    	this.selector.close();
-	    } catch (IOException e) {
-	        log.log(Level.INFO, "close caught: ", e);
-	    }
+        try {
+            this.selector.close();
+        } catch (IOException e) {
+            log.log(Level.INFO, "close caught: ", e);
+        }
     }
 
     @Override
@@ -145,16 +148,16 @@ public class SelectorEventLoop implements EventLoop {
         return registerImpl(datagramChannel, ops, eventHandler);
     }
 
-	@Override
-	public EventLoopSelectionKey register(SourceChannel sourceChannel, int ops, EventLoopListener eventhandler) {
-		return registerImpl(sourceChannel, ops, eventhandler);
-	}
+    @Override
+    public EventLoopSelectionKey register(SourceChannel sourceChannel, int ops, EventLoopListener eventhandler) {
+        return registerImpl(sourceChannel, ops, eventhandler);
+    }
 
-	@Override
-	public EventLoopSelectionKey register(SinkChannel sinkChannel, int ops, EventLoopListener eventhandler) {
-		return registerImpl(sinkChannel, ops, eventhandler);
-	}
-    
+    @Override
+    public EventLoopSelectionKey register(SinkChannel sinkChannel, int ops, EventLoopListener eventhandler) {
+        return registerImpl(sinkChannel, ops, eventhandler);
+    }
+
     private EventLoopSelectionKey registerImpl(SelectableChannel selectableChannel, int ops, EventLoopListener eventHandler) {
         SelectorSelectionKey selectorSelectionKey = null;
         try {
@@ -166,7 +169,7 @@ public class SelectorEventLoop implements EventLoop {
         }
         return selectorSelectionKey;
     }
-    
+
     @Override
     public EventLoopListener registerSelect(EventLoopListener eventhandler)
     {
@@ -174,12 +177,12 @@ public class SelectorEventLoop implements EventLoop {
         selectEventHandler = eventhandler;
         return oldEventhandler;
     }
-    
+
     @Override
     public int addTimer(long when, TimerListener timerHandler) {
         return this.timers.insert(when, timerHandler);
     }
-    
+
     @Override
     public void cancelTimer(int entry) {
         log.log(Level.DEBUG, "cancelTimer");
@@ -199,7 +202,7 @@ public class SelectorEventLoop implements EventLoop {
                     nextTimer = this.timers.getKey(entry);
                     if (nextTimer - now < CLOCK_GRANULARITY) {
                         // Callbacks may change the timer map, remove timer entry beforehand
-                    	TimerListener timerHandler = (TimerListener)this.timers.getValue(entry);
+                        TimerListener timerHandler = (TimerListener)this.timers.getValue(entry);
                         this.timers.removeEntry(entry);
                         timerHandler.onTimer(entry, now);
                         nextTimer = Long.MIN_VALUE;
@@ -211,16 +214,16 @@ public class SelectorEventLoop implements EventLoop {
                 now = System.currentTimeMillis();
                 long timeout = nextTimer - now;
                 if (nextTimer == Long.MIN_VALUE) {
-                	timeout = 0;
+                    timeout = 0;
                 } else if (timeout < CLOCK_GRANULARITY) {
-                	continue;
+                    continue;
                 }
-                
+
                 if (selectEventHandler != null) {
                     selectEventHandler.onSelect();
                 }
                 if (!this.selector.isOpen()) {
-                	break;
+                    break;
                 }
 
                 int keys = this.selector.select(timeout);
@@ -231,19 +234,19 @@ public class SelectorEventLoop implements EventLoop {
                     while (it.hasNext()) {
                         SelectionKey key = it.next();
                         SelectorSelectionKey selectorSelectionKey = (SelectorSelectionKey)key.attachment();
-                        
+
                         it.remove();
                         if (key.isValid() && key.isReadable()) {
-                            selectorSelectionKey.eventLoopHandler.onRead((SelectableChannel)key.channel());
+                            selectorSelectionKey.eventLoopHandler.onRead(key.channel());
                         }
                         if (key.isValid() && key.isWritable()) {
-                            selectorSelectionKey.eventLoopHandler.onWrite((SelectableChannel)key.channel());
+                            selectorSelectionKey.eventLoopHandler.onWrite(key.channel());
                         }
                         if (key.isValid() && key.isConnectable()) {
-                            selectorSelectionKey.eventLoopHandler.onConnect((SelectableChannel)key.channel());
+                            selectorSelectionKey.eventLoopHandler.onConnect(key.channel());
                         }
                         if (key.isValid() && key.isAcceptable()) {
-                            selectorSelectionKey.eventLoopHandler.onAccept((SelectableChannel)key.channel());
+                            selectorSelectionKey.eventLoopHandler.onAccept(key.channel());
                         }
                     }
                 }

@@ -1,6 +1,6 @@
 /*
  * PLEASE DO NOT EDIT!
- * 
+ *
  * This code has been automatically generated.
  * Generator: com.zerogc.messages.GeneratorStores
  * Schema: tools/resources/TestStores.xsd
@@ -9,11 +9,12 @@
 
 package com.zerogc.stores;
 
-import com.zerogc.util.ByteUtils;
-import com.zerogc.util.ByteSlice;
-import com.zerogc.util.ByteStringBuilder;
-import com.zerogc.util.Level;
-import com.zerogc.util.Logger;
+import com.zerogc.core.ByteSlice;
+import com.zerogc.core.ByteStringBuilder;
+import com.zerogc.core.ByteUtils;
+import com.zerogc.logging.Level;
+import com.zerogc.logging.LogManager;
+import com.zerogc.logging.Logger;
 
 public class TestOrderStore {
     protected final Logger log;
@@ -61,7 +62,7 @@ public class TestOrderStore {
     private final ByteSlice slice = new ByteSlice();
 
     public TestOrderStore(String name, int initialCapacity) {
-        log = new Logger(name);
+        log = LogManager.getLogger(name);
         grow(initialCapacity);
     }
 
@@ -73,11 +74,11 @@ public class TestOrderStore {
         if (capacity > 0) {
         	log.log(Level.WARN, log.getSB().append("Resizing TestOrderStore from ").append(capacity).append(" to ").append(newCapacity));
         }
-        
+
         byte[] newBytes = new byte[newCapacity*ByteOffsets.end];
         int[] newInts = new int[newCapacity*IntOffsets.end];
         long[] newLongs = new long[newCapacity*LongOffsets.end];
-        
+
         if (capacity > 0) {
             System.arraycopy(bytes, 0, newBytes, 0, capacity*ByteOffsets.end);
             System.arraycopy(ints, 0, newInts, 0, capacity*IntOffsets.end);

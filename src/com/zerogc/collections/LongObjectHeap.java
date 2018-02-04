@@ -15,37 +15,36 @@
  */
 package com.zerogc.collections;
 
-
 public class LongObjectHeap extends LongHeap {
-	private Object[] value;
+    private Object[] value;
 
     @Override
-	protected void grow(int capacity, int newCapacity) {
-		super.grow(capacity, newCapacity);
-		
-		Object[] newValue = new Object[newCapacity];
+    protected void grow(int capacity, int newCapacity) {
+        super.grow(capacity, newCapacity);
+
+        Object[] newValue = new Object[newCapacity];
         if (capacity > 0) {
             System.arraycopy(this.value, 0, newValue, 0, capacity);
         }
         this.value = newValue;
-	}
-	
-    public LongObjectHeap() {
-    	this(LongObjectHeap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
     }
-    
+
+    public LongObjectHeap() {
+        this(LongObjectHeap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+    }
+
     public LongObjectHeap(String name) {
         this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
     }
 
     public LongObjectHeap(String name, int initialCapacity) {
-    	this(name, initialCapacity, GROWTH_FACTOR);
+        this(name, initialCapacity, GROWTH_FACTOR);
     }
 
     public LongObjectHeap(String name, int initialCapacity, float growthFactor) {
-    	super(name, initialCapacity, growthFactor);
+        super(name, initialCapacity, growthFactor);
     }
-    
+
     public final Object getValue(int entry) {
         return this.value[entry];
     }
@@ -56,11 +55,11 @@ public class LongObjectHeap extends LongHeap {
     }
 */
     public final int insert(long key, Object value) {
-    	int entry = super.insert(key);
-    	this.value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        this.value[entry] = value;
+        return entry;
     }
-/*    
+/*
     public final void remove(long key) {
         removeEntry(find(key));
     }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.zerogc.util;
+package com.zerogc.core;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -21,13 +21,15 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 public class ByteStringBuilder {
-    byte buffer[];
-    int length;
+    private byte buffer[];
+    private int length;
 
     static int MAX_SIZE_SHORT = 6;
     static int MAX_SIZE_INT = 11;
     static int MAX_SIZE_LONG = 20;
     static int MAX_SIZE_DOUBLE = 40;
+    static int MAX_SIZE_INET4 = 15;
+    static int MAX_SIZE_DATE = 23; // "YYYY-MM-DD HH:mm:ss.ccc"
     
     private Calendar calendar = Calendar.getInstance();
 
@@ -38,15 +40,18 @@ public class ByteStringBuilder {
         buffer = new byte[capacity];
     }
 
-    public byte[] buffer() {
+    public byte[] getBuffer() {
         return buffer;
     }
-    
-    public int length() {
+
+    public int getLength() {
         return length;
     }
+    public void setLength(int length) {
+        this.length = length;
+    }
 
-    public int capacity() {
+    public int getCapacity() {
         return buffer.length;
     }
 
@@ -66,27 +71,27 @@ public class ByteStringBuilder {
         buffer = Arrays.copyOf(buffer, newCapacity);
     }
 
-    public void setLength(int newLength) {
-        length = newLength;
-    }
-
     public ByteStringBuilder append(Object obj) {
         return append(String.valueOf(obj));
     }
 
     public ByteStringBuilder append(String str) {
-    	int len = str.length();
-    	ensureCapacity(length+len);
-    	length += ByteUtils.putString(buffer, length, str);
+        int len = str.length();
+        ensureCapacity(length+len);
+        length += ByteUtils.putString(buffer, length, str);
         return this;
     }
 
     public ByteStringBuilder append(ByteStringBuilder sb) {
-    	int len = sb.length();
-    	ensureCapacity(length+len);
-    	System.arraycopy(sb.buffer, 0, buffer, length, len);
-    	length += len;
+        int len = sb.getLength();
+        ensureCapacity(length+len);
+        System.arraycopy(sb.buffer, 0, buffer, length, len);
+        length += len;
         return this;
+    }
+
+    public ByteStringBuilder append(ToByteString toByteString) {
+        return toByteString.toByteString(this);
     }
 
     public ByteStringBuilder append(byte str[]) {
@@ -103,37 +108,37 @@ public class ByteStringBuilder {
         length += len;
         return this;
     }
-    
+
     public ByteStringBuilder append(char str[]) {
-    	int len = str.length;
-    	ensureCapacity(length+len);
-    	System.arraycopy(str, 0, buffer, length, len);
-    	length += len;
+        int len = str.length;
+        ensureCapacity(length+len);
+        System.arraycopy(str, 0, buffer, length, len);
+        length += len;
         return this;
     }
 
     public ByteStringBuilder append(char str[], int offset, int len) {
-    	ensureCapacity(length+len);
-    	System.arraycopy(str, offset, buffer, length, len);
-    	length += len;
+        ensureCapacity(length+len);
+        System.arraycopy(str, offset, buffer, length, len);
+        length += len;
         return this;
     }
 
     public ByteStringBuilder append(ByteBuffer buffer) {
-    	int len = buffer.remaining();
-    	ensureCapacity(length+len);
-    	int offset = buffer.position();
-    	for (int i=offset; i < offset+len; i++) {
-    		this.buffer[length++] = buffer.get(i);
-    	}
+        int len = buffer.remaining();
+        ensureCapacity(length+len);
+        int offset = buffer.position();
+        for (int i=offset; i < offset+len; i++) {
+            this.buffer[length++] = buffer.get(i);
+        }
         return this;
     }
 
     public ByteStringBuilder append(ByteBuffer buffer, int offset, int len) {
-    	ensureCapacity(length+len);
-    	for (int i=offset; i < offset+len; i++) {
-    		this.buffer[length++] = buffer.get(i);
-    	}
+        ensureCapacity(length+len);
+        for (int i=offset; i < offset+len; i++) {
+            this.buffer[length++] = buffer.get(i);
+        }
         return this;
     }
 
@@ -165,46 +170,47 @@ public class ByteStringBuilder {
         buffer[length++] = (byte)c;
         return this;
     }
-	
-	public ByteStringBuilder append(short s) {
-		ensureCapacity(length + MAX_SIZE_SHORT);
-		length += ByteUtils.putInt(buffer, length, s);
-        return this;
-    }
-	
-	public ByteStringBuilder append(int i) {
-		ensureCapacity(length + MAX_SIZE_INT);
-    	if (i == Integer.MIN_VALUE) {
-    		length += ByteUtils.putString(buffer, length, "-2147483648");
-    	} else {
-    		length += ByteUtils.putInt(buffer, length, i);
-    	}
+
+    public ByteStringBuilder append(short s) {
+        ensureCapacity(length + MAX_SIZE_SHORT);
+        length += ByteUtils.putInt(buffer, length, s);
         return this;
     }
 
-	public ByteStringBuilder append(long l) {
-		ensureCapacity(length + MAX_SIZE_LONG);
-    	if (l == Long.MIN_VALUE) {
-    		length = ByteUtils.putString(buffer, length, "-9223372036854775808");
-    	} else {
-    		length += ByteUtils.putLong(buffer, length, l);
-    	}
+    public ByteStringBuilder append(int i) {
+        ensureCapacity(length + MAX_SIZE_INT);
+        if (i == Integer.MIN_VALUE) {
+            length += ByteUtils.putString(buffer, length, "-2147483648");
+        } else {
+            length += ByteUtils.putInt(buffer, length, i);
+        }
+        return this;
+    }
+
+    public ByteStringBuilder append(long l) {
+        ensureCapacity(length + MAX_SIZE_LONG);
+        if (l == Long.MIN_VALUE) {
+            length = ByteUtils.putString(buffer, length, "-9223372036854775808");
+        } else {
+            length += ByteUtils.putLong(buffer, length, l);
+        }
         return this;
     }
 
     public ByteStringBuilder append(float f) {
-		ensureCapacity(length + MAX_SIZE_DOUBLE);
-		length += ByteUtils.putDouble(buffer, length, f);
+        ensureCapacity(length + MAX_SIZE_DOUBLE);
+        length += ByteUtils.putDouble(buffer, length, f);
         return this;
     }
 
     public ByteStringBuilder append(double d) {
-		ensureCapacity(length + MAX_SIZE_DOUBLE);
-		length += ByteUtils.putDouble(buffer, length, d);
+        ensureCapacity(length + MAX_SIZE_DOUBLE);
+        length += ByteUtils.putDouble(buffer, length, d);
         return this;
     }
 
     public ByteStringBuilder appendInet4Address(byte[] addrBytes) {
+        ensureCapacity(length + MAX_SIZE_INET4);
         length += ByteUtils.putInt(buffer, length, addrBytes[0] & 0xFF);
         buffer[length++] = '.';
         length += ByteUtils.putInt(buffer, length, addrBytes[1] & 0xFF);
@@ -216,6 +222,7 @@ public class ByteStringBuilder {
     }
 
     public ByteStringBuilder appendInet4Address(int address) {
+        ensureCapacity(length + MAX_SIZE_INET4);
         length += ByteUtils.putInt(buffer, length, (address >>> 24) & 0xFF);
         buffer[length++] = '.';
         length += ByteUtils.putInt(buffer, length, (address >>> 16) & 0xFF);
@@ -227,13 +234,14 @@ public class ByteStringBuilder {
     }
 
     public ByteStringBuilder append(InetSocketAddress inetSocketAddress) {
-    	//if (inetSocketAddress.isUnresolved()) {
-    		int address = inetSocketAddress.getAddress().hashCode();
-    		appendInet4Address(address);
-    	//} else {
-    		// This might block
-    	//	length += ByteUtils.putString(buffer, length, inetSocketAddress.getHostName());
-    	//}
+        ensureCapacity(length + MAX_SIZE_INET4 + 6);
+        //if (inetSocketAddress.isUnresolved()) {
+        int address = inetSocketAddress.getAddress().hashCode();
+        appendInet4Address(address);
+        //} else {
+        // This might block
+        //  length += ByteUtils.putString(buffer, length, inetSocketAddress.getHostName());
+        //}
         buffer[length++] = ':';
         length += ByteUtils.putInt(buffer, length, inetSocketAddress.getPort());
         return this;
@@ -251,7 +259,7 @@ public class ByteStringBuilder {
         int minute = calendar.get(Calendar.MINUTE);
         int second = calendar.get(Calendar.SECOND);
         int millisecond = calendar.get(Calendar.MILLISECOND);
-        
+
         buffer[length++] = (byte)('0' + year/1000);
         buffer[length++] = (byte)('0' + (year%1000)/100);
         buffer[length++] = (byte)('0' + (year%100)/10);
@@ -290,7 +298,7 @@ public class ByteStringBuilder {
         int minute = calendar.get(Calendar.MINUTE);
         int second = calendar.get(Calendar.SECOND);
         int millisecond = calendar.get(Calendar.MILLISECOND);
-        
+
         buffer[length++] = (byte)('0' + year/1000);
         buffer[length++] = (byte)('0' + (year%1000)/100);
         buffer[length++] = (byte)('0' + (year%100)/10);
@@ -310,7 +318,7 @@ public class ByteStringBuilder {
         buffer[length++] = (byte)('0' + millisecond%10);
         return this;
     }
-    
+
     public ByteStringBuilder appendTime(long timestamp) {
         // Format: "HH:mm:ss.ccc"
         ensureCapacity(length + 12);
@@ -320,7 +328,7 @@ public class ByteStringBuilder {
         int minute = calendar.get(Calendar.MINUTE);
         int second = calendar.get(Calendar.SECOND);
         int millisecond = calendar.get(Calendar.MILLISECOND);
-        
+
         buffer[length++] = (byte)('0' + hour/10);
         buffer[length++] = (byte)('0' + hour%10);
         buffer[length++] = ':';
@@ -335,17 +343,20 @@ public class ByteStringBuilder {
         buffer[length++] = (byte)('0' + millisecond%10);
         return this;
     }
-    
+
     static final byte[] hex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-    
-    private int BYTES_PER_LINE = 16;
-    private int BYTES_PER_BLOCK = 4;
-    private int TEXT_OFFSET = BYTES_PER_LINE*2 + BYTES_PER_LINE/BYTES_PER_BLOCK;
-    private int MAX_LINE_LENGTH = 8 + BYTES_PER_LINE*3;
+
+    private final int BYTES_PER_LINE = 16;
+    private final int BYTES_PER_BLOCK = 4;
+    private final int TEXT_OFFSET = BYTES_PER_LINE*2 + BYTES_PER_LINE/BYTES_PER_BLOCK;
+    // 0123: 0011223344 55667788 99ABBCC DDEEFF 0123456789012345
+    //       <---------- TEXT_OFFSET ---------->
+    private final int MAX_LINE_LENGTH = 6 + TEXT_OFFSET + BYTES_PER_LINE + 1;
 
     public ByteStringBuilder appendHexDump(byte[] buffer, int offset, int len) {
         int textOffset = length;
         int i=0;
+        ensureCapacity(length + MAX_LINE_LENGTH*((len+MAX_LINE_LENGTH-1)/MAX_LINE_LENGTH));
         for (; i < len; ++i, ++offset) {
             if (i%BYTES_PER_LINE == 0) {
                 length = textOffset;
@@ -381,13 +392,13 @@ public class ByteStringBuilder {
         length = textOffset;
         return this;
     }
-    
-    
+
     public ByteStringBuilder appendHexDump(ByteBuffer buffer) {
         int textOffset = length;
         int i=0;
         int offset = buffer.position();
         int len = buffer.remaining();
+        ensureCapacity(length + MAX_LINE_LENGTH*((len+MAX_LINE_LENGTH-1)/MAX_LINE_LENGTH));
         for (; i < len; ++i, ++offset) {
             if (i%BYTES_PER_LINE == 0) {
                 length = textOffset;

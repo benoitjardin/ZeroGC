@@ -14,37 +14,38 @@
  * limitations under the License.
  */
 package com.zerogc.collections;
+import com.zerogc.core.ByteSlice;
 
 public class ObjectObjectHashMap extends ObjectHashSet {
-	private Object[] value;
+    private Object[] value;
 
     @Override
-	protected void grow(int capacity, int newCapacity) {
-		super.grow(capacity, newCapacity);
-		
-		Object[] newValue = new Object[newCapacity];
+    protected void grow(int capacity, int newCapacity) {
+        super.grow(capacity, newCapacity);
+
+        Object[] newValue = new Object[newCapacity];
         if (capacity > 0) {
             System.arraycopy(this.value, 0, newValue, 0, capacity);
         }
         this.value = newValue;
-	}
-	
-    public ObjectObjectHashMap() {
-    	this(ObjectObjectHashMap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
     }
-    
+
+    public ObjectObjectHashMap() {
+        this(ObjectObjectHashMap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+    }
+
     public ObjectObjectHashMap(String name) {
         this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
     }
 
     public ObjectObjectHashMap(String name, int initialCapacity) {
-    	this(name, initialCapacity, GROWTH_FACTOR);
+        this(name, initialCapacity, GROWTH_FACTOR);
     }
 
     public ObjectObjectHashMap(String name, int initialCapacity, float growthFactor) {
-    	super(name, initialCapacity, growthFactor);
+        super(name, initialCapacity, growthFactor);
     }
-    
+
     public final Object getValue(int entry) {
         return this.value[entry];
     }
@@ -54,8 +55,8 @@ public class ObjectObjectHashMap extends ObjectHashSet {
     }
 
     public final int insert(Object key, Object value) {
-    	int entry = super.insert(key);
-    	this.value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        this.value[entry] = value;
+        return entry;
     }
 }

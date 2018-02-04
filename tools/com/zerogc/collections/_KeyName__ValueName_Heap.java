@@ -15,40 +15,36 @@
  */
 package com.zerogc.collections;
 
-//#if "_KeyType_" == "ByteSlice"
-import com.zerogc.util.ByteSlice;
-//#endif
-
 public class _KeyName__ValueName_Heap extends _KeyName_Heap {
-	private _ValueType_[] value;
+    private _ValueType_[] value;
 
     @Override
-	protected void grow(int capacity, int newCapacity) {
-		super.grow(capacity, newCapacity);
-		
-		_ValueType_[] newValue = new _ValueType_[newCapacity];
+    protected void grow(int capacity, int newCapacity) {
+        super.grow(capacity, newCapacity);
+
+        _ValueType_[] newValue = new _ValueType_[newCapacity];
         if (capacity > 0) {
             System.arraycopy(this.value, 0, newValue, 0, capacity);
         }
         this.value = newValue;
-	}
-	
-    public _KeyName__ValueName_Heap() {
-    	this(_KeyName__ValueName_Heap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
     }
-    
+
+    public _KeyName__ValueName_Heap() {
+        this(_KeyName__ValueName_Heap.class.getSimpleName(), INITIAL_CAPACITY, GROWTH_FACTOR);
+    }
+
     public _KeyName__ValueName_Heap(String name) {
         this(name, INITIAL_CAPACITY, GROWTH_FACTOR);
     }
 
     public _KeyName__ValueName_Heap(String name, int initialCapacity) {
-    	this(name, initialCapacity, GROWTH_FACTOR);
+        this(name, initialCapacity, GROWTH_FACTOR);
     }
 
     public _KeyName__ValueName_Heap(String name, int initialCapacity, float growthFactor) {
-    	super(name, initialCapacity, growthFactor);
+        super(name, initialCapacity, growthFactor);
     }
-    
+
     public final _ValueType_ getValue(int entry) {
         return this.value[entry];
     }
@@ -59,11 +55,11 @@ public class _KeyName__ValueName_Heap extends _KeyName_Heap {
     }
 */
     public final int insert(_KeyType_ key, _ValueType_ value) {
-    	int entry = super.insert(key);
-    	this.value[entry] = value; 
-    	return entry;
+        int entry = super.insert(key);
+        this.value[entry] = value;
+        return entry;
     }
-/*    
+/*
     public final void remove(_KeyType_ key) {
         removeEntry(find(key));
     }
